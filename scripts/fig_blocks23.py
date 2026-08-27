@@ -1,0 +1,95 @@
+"""Figura de los bloques 2 y 3: reproduccion de la Fig. 1 de Polonyi (2019).
+
+Regulador suavizado, ec. (17), r0/ell = 3, los mismos m/m_B del paper.
+
+Panel A  m_B > 0: relajacion exponencial monotona. La tasa varia suavemente
+         con m/m_B, que es lo que permite resolver la condicion de
+         renormalizacion (18) monitoreando la relajacion a s grande.
+Panel B  m_B < 0: oscilacion rapida ("Zitterbewegung") con envolvente
+         exponencial creciente o decreciente. El borde de estabilidad cae
+         entre -3.80 y -3.91.
+
+Uso:  python3 scripts/fig_blocks23.py [--force]
+"""
+
+import os
+import sys
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+
+from nlaid.core import Params
+from nlaid.block3_memory import integrate_memory
+
+CACHE = "figures/blocks23_datos.npz"
+ELL = 1.0 / 3.0                      # r0/ell = 3, como en la Fig. 1
+S_END, DS = 25.0, 5e-3
+
+# Rampas ordinales de un solo tono (validadas: L monotona, contraste >= 2:1).
+RAMP_POS = ["#86b6ef", "#2a78d6", "#104281"]
+RAMP_NEG = ["#f09a6e", "#eb6834", "#8f3612"]
+MR_POS = [1.95, 1.98, 2.00]
+MR_NEG = [-3.80, -3.91, -4.10]
+INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
+
+
+def compute(force=False):
+    if os.path.exists(CACHE) and not force:
+        d = np.load(CACHE)
+        return {k: d[k] for k in d.files}
+
+    out = {}
+    for mr in MR_POS + MR_NEG:
+        wl = integrate_memory(Params(ell=ELL, m_over_mB=mr),
+                              s_end=S_END, ds=DS, n_ell=25.0, pts_per_ell=16)
+        m = wl.s >= 0.0
+        out[f"s_{mr}"] = wl.s[m]
+        out[f"a_{mr}"] = np.linalg.norm(wl.a[m], axis=1)
+        out[f"drift_{mr}"] = np.array([wl.norm_drift.max()])
+        print(f"  m/mB={mr:+6.2f}  |a| final={out[f'a_{mr}'][-1]:.3e}  "
+              f"deriva={wl.norm_drift.max():.2e}")
+    np.savez(CACHE, **out)
+    return out
+
+
+def main():
+    data = compute(force="--force" in sys.argv)
+    fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.6))
+
+    for ax, mrs, ramp, titulo in (
+        (axA, MR_POS, RAMP_POS, "A.  $m_B > 0$ — relajación exponencial"),
+        (axB, MR_NEG, RAMP_NEG, "B.  $m_B < 0$ — oscilación con envolvente exponencial"),
+    ):
+        for mr, c in zip(mrs, ramp):
+            s, a = data[f"s_{mr}"], data[f"a_{mr}"]
+            ax.semilogy(s, np.maximum(a, 1e-14), lw=1.4, color=c,
+                        label=f"$m/m_B = {mr:+.2f}$")
+        ax.set_xlabel("$s / r_0$")
+        ax.set_ylabel("$|\\ddot{x}|\\, r_0$")
+        ax.set_title(titulo, loc="left", fontsize=11, color=INK, pad=10)
+        ax.set_xlim(0, S_END)
+        ax.legend(frameon=False, fontsize=9, loc="lower left")
+        ax.grid(True, color=GRID, lw=.8, zorder=0)
+        ax.set_axisbelow(True)
+        for sp in ("top", "right"):
+            ax.spines[sp].set_visible(False)
+        for sp in ("left", "bottom"):
+            ax.spines[sp].set_color(GRID)
+        ax.tick_params(colors=MUTED, labelsize=9)
+        ax.xaxis.label.set_color(INK); ax.yaxis.label.set_color(INK)
+
+    axB.annotate("envolvente creciente\n$\\Rightarrow$ fuera de estabilidad",
+                 xy=(17, 30), fontsize=8.5, color=MUTED)
+
+    fig.suptitle("Bloques 2–3 — ec. (17), regulador suavizado, $r_0/\\ell = 3$   "
+                 "(reproducción de la Fig. 1 de Polonyi 2019)",
+                 x=0.011, ha="left", fontsize=12.5, color=INK)
+    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    fig.savefig("figures/blocks23_fig1.png", dpi=170, facecolor="#fcfcfb")
+    print("\nfigures/blocks23_fig1.png")
+
+
+if __name__ == "__main__":
+    main()
