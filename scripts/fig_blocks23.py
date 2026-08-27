@@ -47,7 +47,7 @@ def compute(force=False):
         m = wl.s >= 0.0
         out[f"s_{mr}"] = wl.s[m]
         out[f"a_{mr}"] = np.linalg.norm(wl.a[m], axis=1)
-        out[f"drift_{mr}"] = np.array([wl.norm_drift.max()])
+        out[f"d_{mr}"] = wl.norm_drift[m]
         print(f"  m/mB={mr:+6.2f}  |a| final={out[f'a_{mr}'][-1]:.3e}  "
               f"deriva={wl.norm_drift.max():.2e}")
     np.savez(CACHE, **out)
@@ -59,17 +59,24 @@ def main():
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.6))
 
     for ax, mrs, ramp, titulo in (
-        (axA, MR_POS, RAMP_POS, "A.  $m_B > 0$ — relajación exponencial"),
+        (axA, MR_POS, RAMP_POS,
+         "A.  $m_B > 0$ — relajación oscilatoria amortiguada"),
         (axB, MR_NEG, RAMP_NEG, "B.  $m_B < 0$ — oscilación con envolvente exponencial"),
     ):
         for mr, c in zip(mrs, ramp):
-            s, a = data[f"s_{mr}"], data[f"a_{mr}"]
-            ax.semilogy(s, np.maximum(a, 1e-14), lw=1.4, color=c,
+            s, a, d = data[f"s_{mr}"], data[f"a_{mr}"], data[f"d_{mr}"]
+            # Truncar donde la deriva de xdot^2 supera 1e-3: mas alla el
+            # integrador ya no conserva la normalizacion y la curva no es
+            # fisica. Mostrar solo el tramo validado.
+            bad = np.where(d > 1e-3)[0]
+            n = bad[0] if len(bad) else len(s)
+            ax.semilogy(s[:n], np.maximum(a[:n], 1e-14), lw=1.4, color=c,
                         label=f"$m/m_B = {mr:+.2f}$")
         ax.set_xlabel("$s / r_0$")
         ax.set_ylabel("$|\\ddot{x}|\\, r_0$")
         ax.set_title(titulo, loc="left", fontsize=11, color=INK, pad=10)
         ax.set_xlim(0, S_END)
+        ax.set_ylim(bottom=1e-12)
         ax.legend(frameon=False, fontsize=9, loc="lower left")
         ax.grid(True, color=GRID, lw=.8, zorder=0)
         ax.set_axisbelow(True)
@@ -80,8 +87,29 @@ def main():
         ax.tick_params(colors=MUTED, labelsize=9)
         ax.xaxis.label.set_color(INK); ax.yaxis.label.set_color(INK)
 
-    axB.annotate("envolvente creciente\n$\\Rightarrow$ fuera de estabilidad",
-                 xy=(17, 30), fontsize=8.5, color=MUTED)
+    # Predicción independiente del bloque 1: cero de chi^r en
+    # omega = +-2.5736 - 0.71793i a r0/ell = 3. La tasa es Im(omega) y el
+    # espaciado entre minimos de |xddot| es medio periodo, pi/Re(omega).
+    TASA, FREQ = -0.71793, 2.5736
+    ss = np.linspace(1.0, 24.0, 50)
+    axA.semilogy(ss, 0.62 * np.exp(TASA * ss), lw=1.2, color=MUTED,
+                 ls=(0, (5, 4)), zorder=5)
+    axA.annotate(f"bloque 1 (ec. 14): $e^{{{TASA:.3f}\,s}}$\n"
+                 f"medido (ec. 17): $e^{{-0.717\,s}}$",
+                 xy=(0.46, 0.87), xycoords="axes fraction",
+                 fontsize=8.5, color=MUTED)
+    axA.annotate(f"semiperíodo predicho $\\pi/{FREQ:.3f} = 1.2207$\n"
+                 f"medido $= 1.2207$",
+                 xy=(0.46, 0.77), xycoords="axes fraction",
+                 fontsize=8.5, color=MUTED)
+
+    axB.set_title("B.  $m_B < 0$ — crecimiento exponencial (ver nota)",
+                  loc="left", fontsize=11, color=INK, pad=10)
+    axB.annotate("curvas truncadas donde la deriva de $\\dot{x}^2$\n"
+                 "supera $10^{-3}$: más allá el integrador\n"
+                 "ya no es fiable",
+                 xy=(0.42, 0.10), xycoords="axes fraction",
+                 fontsize=8.5, color=MUTED)
 
     fig.suptitle("Bloques 2–3 — ec. (17), regulador suavizado, $r_0/\\ell = 3$   "
                  "(reproducción de la Fig. 1 de Polonyi 2019)",
