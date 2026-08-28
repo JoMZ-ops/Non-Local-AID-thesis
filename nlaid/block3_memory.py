@@ -25,6 +25,8 @@ import numpy as np
 from .core import Params, minkowski_dot
 from .worldline import WorldLine, rest_history, smooth_bump, unit_normal
 
+BLOWUP = 1e6      # |xddot| por encima del cual la trayectoria ya escapo
+
 __all__ = ["rhs_memory", "integrate_memory"]
 
 
@@ -118,5 +120,14 @@ def integrate_memory(
         if not np.all(np.isfinite(a_new)):
             raise FloatingPointError(f"divergencia en s={s_new:.4f}")
         wl.append(s_new, x_p, v_p, a_new)
+
+        # Corte temprano por escape. Una vez que |xddot| supera BLOWUP la
+        # trayectoria ya escapo y seguir integrando no anade informacion:
+        # solo acumula error y, en la ec. (16), dispara la busqueda del punto
+        # retardado (que debe retroceder cada vez mas para alcanzar el cono).
+        # Se devuelve la historia truncada; los diagnosticos de amplitud y
+        # deriva bastan para clasificarla como inestable.
+        if np.linalg.norm(a_new) > BLOWUP:
+            break
 
     return wl

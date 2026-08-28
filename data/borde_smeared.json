@@ -1,0 +1,33 @@
+{
+ "2.0": {
+  "positiva": 6.028,
+  "negativa": -2.715
+ },
+ "3.0": {
+  "positiva": 4.015,
+  "negativa": -1.818
+ },
+ "4.0": {
+  "positiva": 3.009,
+  "negativa": -1.372
+ },
+ "6.0": {
+  "positiva": 2.003,
+  "negativa": -0.926
+ },
+ "8.0": {
+  "positiva": 1.5,
+  "negativa": null,
+  "negativa_motivo": "bracketing no convergio"
+ },
+ "10.0": {
+  "positiva": null,
+  "negativa": -0.565,
+  "positiva_motivo": "bracketing no convergio"
+ },
+ "12.0": {
+  "positiva": 1.0,
+  "negativa": null,
+  "negativa_motivo": "bracketing no convergio"
+ }
+}
