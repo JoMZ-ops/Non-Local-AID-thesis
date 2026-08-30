@@ -96,11 +96,15 @@ def susceptibility(omega, reg: Regulator, params: Params):
     scalar = omega.ndim == 0
     omega = np.atleast_1d(omega)
 
-    def integral_for(w):
-        # int_{-inf}^{0} du delta_B(u^2) N(w u) / u^2
-        return reg.integrate_u(lambda u: numerator_N(w * u) / u ** 2)
-
-    integ = np.array([integral_for(w) for w in omega], dtype=complex)
+    # int_{-inf}^{0} du delta_B(u^2) N(w u) / u^2, para TODOS los omega a la vez.
+    # La cuadratura se pide al regulador como nodos y pesos, de modo que el
+    # integrando se evalua sobre la malla completa (n_omega x n_nodos) en una
+    # sola llamada. La version escalar -- un bucle de Python sobre omega, con
+    # una suma de 120 nodos de Laguerre dentro -- dominaba el costo de todo el
+    # bloque 1: las busquedas de ceros recorren decenas de miles de omega.
+    u, wq = reg.nodes_weights()
+    phi = omega[:, None] * u[None, :]
+    integ = np.einsum("j,ij->i", wq, numerator_N(phi) / u[None, :] ** 2)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         bracket = (2.0 / 3.0) * 1j * omega - 2.0 * integ / omega ** 2

@@ -102,15 +102,24 @@ class Regulator:
         """delta_B'(z) = d delta_B / dz. La necesita la ec. (6)."""
         raise NotImplementedError
 
-    def integrate_u(self, g):
-        """int_{-inf}^{0} du delta_B(u^2) g(u), con g vectorizada sobre u.
+    def nodes_weights(self):
+        """(u, w) tales que  int_{-inf}^{0} du delta_B(u^2) g(u) = sum_i w_i g(u_i).
 
-        Este es el funcional que aparece en la teoria linealizada, donde
-        (x - x')^2 -> u^2. Cada regulador lo implementa con la cuadratura que
-        le corresponde: exacta para la delta desplazada, Gauss-Laguerre para
-        la suavizada.
+        Es la cuadratura del funcional que aparece en la teoria linealizada,
+        donde (x - x')^2 -> u^2. Exponerla como nodos y pesos, en lugar de
+        como una rutina que recibe `g`, permite evaluar el integrando sobre
+        una malla de frecuencias de una sola vez: `susceptibility` recorre
+        cientos de omega y la version escalar la volvia el cuello de botella.
+
+        `integrate_u` se define encima de esto, de modo que la cuadratura
+        tiene UNA sola definicion por regulador.
         """
         raise NotImplementedError
+
+    def integrate_u(self, g):
+        """int_{-inf}^{0} du delta_B(u^2) g(u), con g vectorizada sobre u."""
+        u, w = self.nodes_weights()
+        return np.sum(w * g(u))
 
     # -- diagnosticos compartidos ------------------------------------------
 
@@ -187,8 +196,13 @@ class ShiftedDelta(Regulator):
     def d_delta(self, z):
         return np.zeros_like(np.asarray(z, dtype=float))
 
-    def integrate_u(self, g):
-        return g(-self.ell) / (2.0 * self.ell)
+    def nodes_weights(self):
+        """Un solo nodo: la raiz retardada u = -ell, con peso 1/(2 ell).
+
+        delta(u^2 - ell^2) = [delta(u+ell) + delta(u-ell)] / (2 ell), y sobre
+        u < 0 solo sobrevive u = -ell.
+        """
+        return np.array([-self.ell]), np.array([1.0 / (2.0 * self.ell)])
 
     def moment_inv_sqrt(self) -> float:
         # int_0^inf dz z^{-1/2} delta(z - ell^2) = 1/ell
@@ -281,10 +295,10 @@ class SmearedDelta(Regulator):
         )
         return out
 
-    def integrate_u(self, g):
+    def nodes_weights(self):
+        """Gauss-Laguerre generalizada (alpha=2) tras sustituir u = -ell t."""
         t, w = self._tw
-        vals = g(-self.ell * t)
-        return np.sum(w * vals) / (12.0 * self.ell)
+        return -self.ell * t, w / (12.0 * self.ell)
 
     def moment_inv_sqrt(self) -> float:
         # int_0^inf dz z^{-1/2} delta_B(z) = 1/(3 ell), analitico
