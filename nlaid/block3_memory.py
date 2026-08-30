@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .core import Params, minkowski_dot
+from .core import Params, Regulator, make_regulator, minkowski_dot
 from .worldline import WorldLine, rest_history, smooth_bump, unit_normal
 
 BLOWUP = 1e6      # |xddot| por encima del cual la trayectoria ya escapo
@@ -31,8 +31,22 @@ __all__ = ["rhs_memory", "integrate_memory"]
 
 
 def rhs_memory(x, v, wl: WorldLine, s_now: float, params: Params,
-               n_ell: float = 30.0, pts_per_ell: int = 16):
+               n_ell: float = 30.0, pts_per_ell: int = 16,
+               regulator: Regulator | None = None):
     """Lado derecho de la ec. (17) por cuadratura de Simpson sobre la memoria.
+
+    Se evalua en la forma GENERAL de la ec. (6),
+
+        xddot = 4 r_0B int ds' delta_B'((x-x')^2) {(x-x')(xdot.xdot')
+                                                   - [xdot.(x-x')] xdot'}
+
+    tomando delta_B' del regulador de `core`, no reescrito aqui. Para el
+    regulador suavizado, ec. (5), esto reproduce la ec. (17) del paper:
+    delta_B' = [1 - sqrt(w)/2ell] exp(-sqrt(w)/ell) / (12 ell^4), y el 4 r_0B
+    de fuera absorbe el 1/12 dejando el prefactor r0 (m/m_B) / (3 ell^4).
+
+    Escribirlo asi evita que el kernel viva duplicado: cambiar delta_B en
+    `core` se propaga automaticamente a la dinamica.
 
     La cuadratura se parametriza por PUNTOS POR ell, no por numero total: asi
     el paso du = ell/pts_per_ell queda fijo al variar la ventana n_ell, y el
@@ -41,6 +55,9 @@ def rhs_memory(x, v, wl: WorldLine, s_now: float, params: Params,
     dos errores se mezclaban.)
     """
     ell = params.ell
+    if regulator is None:
+        regulator = make_regulator("smeared", ell)
+
     window = n_ell * ell
     n = int(np.ceil(n_ell * pts_per_ell))
     n = n + 1 if n % 2 == 0 else n                       # Simpson necesita impar
@@ -52,9 +69,8 @@ def rhs_memory(x, v, wl: WorldLine, s_now: float, params: Params,
     d = x - xp                                            # (x - x'), (n, dim)
     w = minkowski_dot(d, d)
     w = np.maximum(w, 0.0)                                # separacion temporal
-    sq = np.sqrt(w)
 
-    kernel = (1.0 - sq / (2.0 * ell)) * np.exp(-sq / ell)
+    kernel = regulator.d_delta(w)                         # delta_B'((x-x')^2)
 
     v_vp = minkowski_dot(v, vp)
     v_d = minkowski_dot(v, d)
@@ -66,7 +82,8 @@ def rhs_memory(x, v, wl: WorldLine, s_now: float, params: Params,
     wts = np.ones(n); wts[1:-1:2] = 4.0; wts[2:-1:2] = 2.0
     integral = (du / 3.0) * np.einsum("i,ij->j", wts, integrand)
 
-    return params.r0 * params.m_over_mB / (3.0 * ell ** 4) * integral
+    # 4 r_0B, con r_0B = r0 (m/m_B) el radio clasico desnudo (ec. 6).
+    return 4.0 * params.r0 * params.m_over_mB * integral
 
 
 def integrate_memory(
@@ -85,12 +102,15 @@ def integrate_memory(
     lo permite -- con un predictor-corrector para el acoplamiento entre x(s) y
     el nucleo, que depende de x(s) a traves de w = (x - x')^2.
 
-    La prehistoria debe cubrir al menos n_ell*ell hacia atras; `rest_then_kick`
+    La prehistoria debe cubrir al menos n_ell*ell hacia atras; `rest_history`
     lo garantiza con su segmento en reposo.
     """
     ell = params.ell
     if drive is None:
         drive = lambda s: smooth_bump(s, amplitude=0.3, s0=0.0, width=1.0)
+
+    # Se construye una sola vez y se pasa al RHS en cada paso.
+    regulador = make_regulator("smeared", ell)
 
     wl = history if history is not None else rest_history(
         dim=params.dim, ds=ds, s_rest=max(4.0, 1.5 * n_ell * ell)
@@ -110,7 +130,8 @@ def integrate_memory(
         a_new = a_n
         for _ in range(n_corrector):
             a_new = rhs_memory(x_p, v_p, wl, s_new, params,
-                               n_ell=n_ell, pts_per_ell=pts_per_ell)
+                               n_ell=n_ell, pts_per_ell=pts_per_ell,
+                               regulator=regulador)
             k = drive(s_new)
             if k:
                 a_new = a_new + k * unit_normal(v_p)

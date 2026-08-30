@@ -224,11 +224,23 @@ class SmearedDelta(Regulator):
     name = "smeared"
 
     def __init__(self, ell: float, n_quad: int = 120):
-        from scipy.special import roots_genlaguerre
-
         self.ell = float(ell)
         self.n_quad = int(n_quad)
-        self._t, self._w = roots_genlaguerre(self.n_quad, 2.0)
+        self._nodos = None          # (t, w), calculados solo si hacen falta
+
+    @property
+    def _tw(self):
+        """Nodos y pesos de Gauss-Laguerre, calculados de forma perezosa.
+
+        Solo `integrate_u` los necesita. Construir un regulador debe ser
+        barato porque el bloque 3 lo consulta dentro del bucle de integracion,
+        una vez por paso; calcular 120 nodos en el constructor lo volvia
+        prohibitivo.
+        """
+        if self._nodos is None:
+            from scipy.special import roots_genlaguerre
+            self._nodos = roots_genlaguerre(self.n_quad, 2.0)
+        return self._nodos
 
     def delta(self, z):
         z = np.asarray(z, dtype=float)
@@ -270,8 +282,9 @@ class SmearedDelta(Regulator):
         return out
 
     def integrate_u(self, g):
-        vals = g(-self.ell * self._t)
-        return np.sum(self._w * vals) / (12.0 * self.ell)
+        t, w = self._tw
+        vals = g(-self.ell * t)
+        return np.sum(w * vals) / (12.0 * self.ell)
 
     def moment_inv_sqrt(self) -> float:
         # int_0^inf dz z^{-1/2} delta_B(z) = 1/(3 ell), analitico

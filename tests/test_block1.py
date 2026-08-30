@@ -140,3 +140,75 @@ def test_cutoff_grande_es_estable():
     ell = 20.0
     reg, p = SmearedDelta(ell), Params(ell=ell)
     assert count_zeros_uhp(reg, p, re_max=5.0, im_hi=0.9/ell, n=600) == 0
+
+
+# --- Funciones que consumen las figuras ------------------------------------
+# Estaban sin cobertura pese a ser las que producen los numeros graficados.
+
+@pytest.mark.parametrize("kind,ell,esperado", [
+    ("shifted", 1.0, 2.0),          # delta_m/m = r0/2ell = 0.5  -> 1/(1-0.5)
+    ("shifted", 0.25, -1.0),        # r0/ell = 4  -> delta_m/m = 2
+    ("smeared", 1.0, 1.2),          # delta_m/m = r0/6ell = 1/6  -> 1/(1-1/6)
+    ("smeared", 1.0 / 12, -1.0),    # r0/ell = 12 -> delta_m/m = 2
+])
+def test_contraterm_forma_cerrada(kind, ell, esperado):
+    """m/m_B = 1/(1 - delta_m/m) con delta_m/m = r0/2ell o r0/6ell.
+
+    Digitalizando la Fig. 2(a) del paper, la ley del regulador desplazado
+    reproduce su linea punteada con error medio 0.0017 sobre siete puntos
+    (ver docs/discrepancias.md, hallazgo F1).
+    """
+    from nlaid.core import make_regulator
+    assert make_regulator(kind, ell).m_over_mB_counterterm() == pytest.approx(
+        esperado, rel=1e-12)
+
+
+def test_contraterm_diverge_donde_el_bare_mass_se_anula():
+    """delta_m = m  =>  m_B = 0  =>  m/m_B diverge.
+
+    Ocurre en r0/ell = 2 (desplazado) y 6 (suavizado): son las asintotas
+    verticales que separan las dos ramas de la Fig. 2.
+    """
+    from nlaid.core import make_regulator
+    for kind, x_c in (("shifted", 2.0), ("smeared", 6.0)):
+        assert make_regulator(kind, 1.0 / x_c).mass_shift_over_m() == pytest.approx(1.0)
+        # justo a un lado y al otro el signo se invierte y la magnitud es grande
+        izq = make_regulator(kind, 1.0 / (x_c * 0.999)).m_over_mB_counterterm()
+        der = make_regulator(kind, 1.0 / (x_c * 1.001)).m_over_mB_counterterm()
+        assert izq > 100 and der < -100, (kind, izq, der)
+
+
+def test_dominant_pole_devuelve_el_cero_de_mayor_parte_imaginaria():
+    from nlaid.block1_linear import dominant_pole, find_zeros_uhp
+    ell = 0.02
+    reg, p = SmearedDelta(ell), Params(ell=ell)
+    kw = dict(re_max=6.0, im_hi=6.0, grid=120)
+    z = dominant_pole(reg, p, **kw)
+    assert z is not None
+    assert z.imag == max(w.imag for w in find_zeros_uhp(reg, p, **kw))
+
+
+def test_dominant_pole_es_None_si_la_teoria_es_estable():
+    """Sin ceros en el semiplano superior no hay modo inestable que devolver."""
+    from nlaid.block1_linear import dominant_pole
+    ell = 20.0
+    assert dominant_pole(SmearedDelta(ell), Params(ell=ell),
+                         re_max=5.0, im_hi=5.0, grid=80) is None
+
+
+@pytest.mark.slow
+def test_critical_cutoff_separa_estable_de_inestable():
+    """El valor critico debe tener conteo 0 justo debajo y >0 justo encima.
+
+    Es el contraste que valida la biseccion sin suponer su monotonia: se
+    comprueba directamente el cambio de fase en el punto devuelto.
+    """
+    from nlaid.core import make_regulator
+    from nlaid.block1_linear import critical_cutoff, count_zeros_uhp
+    kw = dict(re_max=8.0, im_hi=8.0)
+    xc = critical_cutoff("shifted", lo=0.3, hi=20.0, tol=5e-3, n=800, **kw)
+    for factor, esperado_inestable in ((0.95, False), (1.05, True)):
+        ell = 1.0 / (xc * factor)
+        n = count_zeros_uhp(make_regulator("shifted", ell), Params(ell=ell),
+                            n=800, **kw)
+        assert (n > 0) is esperado_inestable, (factor, n, xc)

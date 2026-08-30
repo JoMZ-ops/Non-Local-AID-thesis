@@ -8,7 +8,8 @@ Panel B  Linea de contraterm m/m_B de la ec. (10): la linea punteada de la
 Uso:  python3 scripts/fig_block1.py
 """
 
-import warnings
+import os
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
@@ -18,46 +19,83 @@ import numpy as np
 from nlaid.core import Params, make_regulator
 from nlaid.block1_linear import critical_cutoff, dominant_pole
 
-warnings.simplefilter("ignore")
-
 # Paleta categorica en orden fijo (validada para daltonismo: dE 24.7 protan).
 COLOR = {"shifted": "#2a78d6", "smeared": "#eb6834"}
 LABEL = {"shifted": "desplazado  ec. (4)", "smeared": "suavizado  ec. (5)"}
 INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 
-BOX = dict(re_max=12.0, im_hi=12.0)
-
-
 CACHE = "figures/block1_datos.npz"
+
+# Parametros que DEFINEN el calculo. Van al cache y se comparan al cargarlo:
+# si cambian -- o si se corrige un bug aguas abajo y se sube RECETA -- el
+# cache queda invalidado y se recalcula. Sin esto se pueden ver numeros viejos
+# despues de haber arreglado la fisica, que es el modo de fallo peligroso.
+RECETA = {
+    "version": 2,               # subir a mano al cambiar la fisica aguas abajo
+    "re_max": 12.0,
+    "im_hi": 12.0,
+    "grid": 180,
+    "n_contorno": 1200,
+    "x_lo": 0.3, "x_hi": 30.0, "x_n1": 40, "x_n2": 40, "x_corte": 6.0,
+    "crit_tol": 2e-3,
+}
+BOX = dict(re_max=RECETA["re_max"], im_hi=RECETA["im_hi"])
+
+
+def _malla():
+    r = RECETA
+    return np.concatenate([np.linspace(r["x_lo"], r["x_corte"], r["x_n1"]),
+                           np.linspace(r["x_corte"] + 0.5, r["x_hi"], r["x_n2"])])
+
+
+def _cache_vigente(d) -> bool:
+    """True si el cache se genero con la RECETA actual."""
+    for k, v in RECETA.items():
+        if "receta_" + k not in d.files or not np.isclose(d["receta_" + k], v):
+            return False
+    return True
 
 
 def compute(force=False):
-    """Barrido de polos. Se cachea: el calculo domina el costo del replot."""
-    import os
+    """Barrido de polos. Se cachea: el calculo domina el costo del replot.
+
+    El cache guarda la RECETA junto a los datos y se descarta si no coincide,
+    de modo que un cambio de parametros o de fisica fuerza el recalculo en vez
+    de devolver resultados obsoletos en silencio.
+    """
     if os.path.exists(CACHE) and not force:
         d = np.load(CACHE)
-        return d["xs"], {k: d[k] for k in ("shifted", "smeared")}, \
-               {k: float(d["crit_" + k]) for k in ("shifted", "smeared")}
+        if _cache_vigente(d):
+            return (d["xs"],
+                    {k: d[k] for k in ("shifted", "smeared")},
+                    {k: float(d["crit_" + k]) for k in ("shifted", "smeared")})
+        print("cache obsoleto (la receta cambio): recalculando", file=sys.stderr)
 
-    xs = np.concatenate([np.linspace(0.3, 6, 40), np.linspace(6.5, 30, 40)])
+    xs = _malla()
     poles, crit = {}, {}
     for kind in ("shifted", "smeared"):
-        poles[kind] = np.array([
-            (lambda z: z.imag if z is not None else np.nan)(
-                dominant_pole(make_regulator(kind, 1.0 / x), Params(ell=1.0 / x),
-                              grid=180, **BOX))
-            for x in xs])
-        crit[kind] = critical_cutoff(kind, lo=0.3, hi=30.0, tol=2e-3,
-                                     n=1200, **BOX)
+        im = []
+        for x in xs:
+            ell = 1.0 / x
+            z = dominant_pole(make_regulator(kind, ell), Params(ell=ell),
+                              grid=RECETA["grid"], **BOX)
+            im.append(np.nan if z is None else z.imag)
+        poles[kind] = np.array(im)
+
+        crit[kind] = critical_cutoff(kind, lo=RECETA["x_lo"], hi=RECETA["x_hi"],
+                                     tol=RECETA["crit_tol"],
+                                     n=RECETA["n_contorno"], **BOX)
         print(f"{kind:9s}  r0/ell critico = {crit[kind]:.3f}"
               f"   (ell_c = {1/crit[kind]:.3f} r0)")
+
     np.savez(CACHE, xs=xs, **poles,
-             **{"crit_" + k: v for k, v in crit.items()})
+             **{"crit_" + k: v for k, v in crit.items()},
+             **{"receta_" + k: v for k, v in RECETA.items()})
     return xs, poles, crit
 
 
 def main():
-    xs, poles, crit = compute()
+    xs, poles, crit = compute(force="--force" in sys.argv)
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.4))
 
