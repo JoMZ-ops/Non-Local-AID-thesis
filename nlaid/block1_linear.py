@@ -104,7 +104,11 @@ def susceptibility(omega, reg: Regulator, params: Params):
     # bloque 1: las busquedas de ceros recorren decenas de miles de omega.
     u, wq = reg.nodes_weights()
     phi = omega[:, None] * u[None, :]
-    integ = np.einsum("j,ij->i", wq, numerator_N(phi) / u[None, :] ** 2)
+    # errstate acotado, no global: a |omega| enorme numerator_N desborda a inf
+    # y aqui sale inf/inf. Ocurre solo cuando Muller tantea lejos, y la caja
+    # acotante descarta esos iterados; el resultado no se usa.
+    with np.errstate(invalid="ignore"):
+        integ = np.einsum("j,ij->i", wq, numerator_N(phi) / u[None, :] ** 2)
 
     with np.errstate(divide="ignore", invalid="ignore"):
         bracket = (2.0 / 3.0) * 1j * omega - 2.0 * integ / omega ** 2
@@ -296,3 +300,4 @@ def critical_cutoff(
         mid = 0.5 * (lo + hi)
         lo, hi = (lo, mid) if unstable(mid) else (mid, hi)
     return 0.5 * (lo + hi)
+
