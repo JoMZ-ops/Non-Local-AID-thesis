@@ -15,11 +15,14 @@ Panel B  m_B/m = 1 - delta_m/m. Se grafica esta y no m/m_B porque no diverge:
 Uso:  python3 scripts/fig_masa.py
 """
 
+import os
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from nlaid import RAIZ
 from nlaid.core import make_regulator
 
 COLOR = {"shifted": "#2a78d6", "smeared": "#eb6834"}
@@ -31,6 +34,10 @@ CRUCE = {"shifted": 2.0, "smeared": 6.0}
 
 
 def main():
+    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
+    # directorio desde el que se invoque el script.
+    os.chdir(RAIZ)
+
     x = np.linspace(0.05, 20, 800)          # r0/ell
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.4))
 

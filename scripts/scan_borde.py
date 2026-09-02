@@ -13,12 +13,14 @@ Salida: data/borde_<regulador>.json
 """
 
 import json
+import os
 import sys
 import time
 import warnings
 
 import numpy as np
 
+from nlaid import RAIZ
 from nlaid.block4_renorm import stability_edge
 
 warnings.simplefilter("ignore")
@@ -31,6 +33,10 @@ CUTOFFS = [2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
 
 def main():
+    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
+    # directorio desde el que se invoque el script.
+    os.chdir(RAIZ)
+
     reg = "smeared"
     if len(sys.argv) > 1:
         reg = {"suavizado": "smeared", "desplazado": "shifted"}.get(

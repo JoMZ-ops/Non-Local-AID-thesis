@@ -20,6 +20,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from nlaid import RAIZ
 from nlaid.core import Params
 from nlaid.block3_memory import integrate_memory
 
@@ -55,6 +56,10 @@ def compute(force=False):
 
 
 def main():
+    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
+    # directorio desde el que se invoque el script.
+    os.chdir(RAIZ)
+
     data = compute(force="--force" in sys.argv)
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.6))
 

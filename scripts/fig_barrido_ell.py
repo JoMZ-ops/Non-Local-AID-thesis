@@ -16,6 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from nlaid import RAIZ
 from nlaid.core import Params, make_regulator
 from nlaid.block1_linear import dominant_pole
 from nlaid.block3_memory import integrate_memory
@@ -54,6 +55,10 @@ def compute(force=False):
 
 
 def main():
+    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
+    # directorio desde el que se invoque el script.
+    os.chdir(RAIZ)
+
     d = compute(force="--force" in sys.argv)
     fig, (axA, axB, axC) = plt.subplots(1, 3, figsize=(14, 4.3))
 

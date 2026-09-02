@@ -9,6 +9,14 @@ Bloque 3  block3_memory   ec. (17)  regulador suavizado, memoria infinita
 Todos comparten `core.Params` y los reguladores de `core`.
 """
 
+import pathlib
+
 from .core import Params, ShiftedDelta, SmearedDelta, make_regulator, minkowski_dot
 
-__all__ = ["Params", "ShiftedDelta", "SmearedDelta", "make_regulator", "minkowski_dot"]
+# Raiz del repo. Los scripts y el notebook la usan para localizar figures/ y
+# data/ sin depender del directorio desde el que se los invoque. Valida con la
+# instalacion editable (pip install -e .), que es como se usa este repo.
+RAIZ = pathlib.Path(__file__).resolve().parent.parent
+
+__all__ = ["RAIZ", "Params", "ShiftedDelta", "SmearedDelta",
+           "make_regulator", "minkowski_dot"]

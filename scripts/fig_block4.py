@@ -49,6 +49,10 @@ def cte(x, y):
 
 
 def main():
+    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
+    # directorio desde el que se invoque el script.
+    os.chdir(RAIZ)
+
     dig = np.load("data/fig2_digitalizada.npz")
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8))
 

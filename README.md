@@ -39,6 +39,32 @@ el cutoff o el regulador se propaga a todo el análisis sin duplicar parámetros
 pip install -e ".[dev]"
 ```
 
+El `-e` importa: instala el paquete apuntando al repo, de modo que `import nlaid`
+funciona desde cualquier directorio y los cambios al código se ven sin reinstalar.
+
+### En Google Colab o Jupyter
+
+```python
+!git clone -b claude/nonlocal-memory-system-analysis-t9dnw3 https://github.com/JoMZ-ops/Non-Local-AID-thesis
+!pip install -q -e Non-Local-AID-thesis
+```
+
+Los scripts localizan `figures/` y `data/` a partir de `nlaid.RAIZ`, no del
+directorio de trabajo, así que corren igual desde donde sea:
+
+```python
+!python Non-Local-AID-thesis/scripts/fig_barrido_ell.py
+```
+
+o desde dentro del notebook, sin salir del proceso:
+
+```python
+from scripts.fig_barrido_ell import main; main()
+```
+
+`notebooks/recorrido_completo.ipynb` ya trae la celda de arranque que hace todo
+esto solo.
+
 ## Uso
 
 ```python
