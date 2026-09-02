@@ -56,10 +56,21 @@ directorio de trabajo, así que corren igual desde donde sea:
 !python Non-Local-AID-thesis/scripts/fig_barrido_ell.py
 ```
 
-o desde dentro del notebook, sin salir del proceso:
+o desde dentro del notebook. **`scripts/` no es un paquete instalable** — `pip`
+solo instala `nlaid` —, así que un `import scripts...` falla con
+`ModuleNotFoundError`. Lo correcto es la magia nativa de IPython/Colab, que
+ejecuta el script en el espacio de nombres del notebook:
 
 ```python
-from scripts.fig_barrido_ell import main; main()
+%run Non-Local-AID-thesis/scripts/fig_barrido_ell.py
+```
+
+Después de eso, `compute`, `main` y `ELLS` quedan disponibles, y el barrido se
+puede repetir con otros cutoffs sin editar el archivo:
+
+```python
+import numpy as np
+main(ells=np.geomspace(4.0, 0.15, 7), force=True)
 ```
 
 `notebooks/recorrido_completo.ipynb` ya trae la celda de arranque que hace todo

@@ -27,20 +27,37 @@ ELLS = np.array([2.0, 1.0, 0.5, 0.3, 0.2])      # r0/ell = 0.5, 1, 2, 3.33, 5
 M_OVER_MB = 0.5
 S_END, DS = 12.0, 5e-3
 
-# Rampa ordinal de un solo tono (validada: L monotona, contraste 2.06:1).
+# Rampa ordinal de un solo tono (validada: L monotona, contraste 2.06:1 en el
+# extremo claro). Se interpola ENTRE estos pasos para admitir cualquier numero
+# de cutoffs sin perder las propiedades del extremo.
 RAMPA = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281"]
 INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 
 
-def compute(force=False):
+def _colores(n):
+    """Rampa de n pasos interpolando dentro de RAMPA."""
+    from matplotlib.colors import LinearSegmentedColormap
+    return LinearSegmentedColormap.from_list("nlaid", RAMPA)(np.linspace(0, 1, n))
+
+
+def compute(ells=ELLS, m_over_mB=M_OVER_MB, force=False):
+    """Integra la ec. (17) para cada cutoff de `ells`. Cachea por (ells, m/m_B).
+
+    Los dos parametros del barrido son argumentos, no constantes del modulo,
+    para poder cambiarlos desde un notebook sin editar el archivo:
+
+        %run scripts/fig_barrido_ell.py          # deja todo en el namespace
+        d = compute(ells=[4.0, 1.0, 0.25], force=True)
+    """
+    ells = np.asarray(ells, dtype=float)
     if os.path.exists(CACHE) and not force:
         d = np.load(CACHE)
-        if np.array_equal(d["ells"], ELLS) and float(d["m_over_mB"]) == M_OVER_MB:
+        if np.array_equal(d["ells"], ells) and float(d["m_over_mB"]) == m_over_mB:
             return {k: d[k] for k in d.files}
 
-    out = {"ells": ELLS, "m_over_mB": M_OVER_MB}
-    for ell in ELLS:
-        wl = integrate_memory(Params(ell=ell, m_over_mB=M_OVER_MB),
+    out = {"ells": ells, "m_over_mB": m_over_mB}
+    for ell in ells:
+        wl = integrate_memory(Params(ell=ell, m_over_mB=m_over_mB),
                               s_end=S_END, ds=DS, n_ell=25.0)
         m = wl.s >= 0.0
         out[f"s_{ell}"] = wl.s[m]
@@ -54,15 +71,18 @@ def compute(force=False):
     return out
 
 
-def main():
+def main(ells=ELLS, m_over_mB=M_OVER_MB, force=None):
     # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
     # directorio desde el que se invoque el script.
     os.chdir(RAIZ)
 
-    d = compute(force="--force" in sys.argv)
+    d = compute(ells, m_over_mB,
+                force=("--force" in sys.argv) if force is None else force)
+    ells = d["ells"]
+    colores = _colores(len(ells))
     fig, (axA, axB, axC) = plt.subplots(1, 3, figsize=(14, 4.3))
 
-    for ell, c in zip(ELLS, RAMPA):
+    for ell, c in zip(ells, colores):
         s, a, v = d[f"s_{ell}"], d[f"a_{ell}"], d[f"v_{ell}"]
         lab = f"$r_0/\\ell$ = {1/ell:.2f}"
         axA.semilogy(s, np.maximum(a, 1e-14), lw=1.5, color=c, label=lab)
@@ -92,7 +112,7 @@ def main():
                           ("shifted", "--", "desplazado ec. (4)")):
         y = [1.0 - make_regulator(kind, 1/xi).mass_shift_over_m() for xi in x]
         axC.plot(x, y, lw=2, ls=ls, color=MUTED, label=nom)
-    for ell, c in zip(ELLS, RAMPA):
+    for ell, c in zip(ells, colores):
         xi = 1/ell
         axC.plot([xi], [1 - make_regulator("smeared", ell).mass_shift_over_m()],
                  "o", ms=8, color=c, mec="#fcfcfb", mew=1.5, zorder=5)
@@ -116,7 +136,7 @@ def main():
         ax.tick_params(colors=MUTED, labelsize=9)
         ax.xaxis.label.set_color(INK); ax.yaxis.label.set_color(INK)
 
-    fig.suptitle(f"Barrido en el cutoff $\\ell$  —  ec. (17), $m/m_B$ = {M_OVER_MB}",
+    fig.suptitle(f"Barrido en el cutoff $\\ell$  —  ec. (17), $m/m_B$ = {d['m_over_mB']}",
                  x=0.008, ha="left", fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.92))
     fig.savefig("figures/barrido_ell.png", dpi=170, facecolor="#fcfcfb")
