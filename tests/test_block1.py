@@ -212,3 +212,58 @@ def test_critical_cutoff_separa_estable_de_inestable():
         n = count_zeros_uhp(make_regulator("shifted", ell), Params(ell=ell),
                             n=800, **kw)
         assert (n > 0) is esperado_inestable, (factor, n, xc)
+
+
+# --- Rama en el tiempo: la ec. linealizada frente a la ec. (14) -----------
+
+@pytest.mark.parametrize("x", [2.0, 4.0, 6.0])
+@pytest.mark.parametrize("omega", [0.3 + 0.1j, 1.5 - 0.4j, 3.0 + 1.0j])
+def test_dispersion_es_omega2_por_chi(x, omega):
+    """D(omega) de la ec. linealizada en el tiempo == omega^2 chi^r_omega.
+
+    Son DOS derivaciones distintas del mismo objeto: `dispersion` parte de
+    delta_B'(u^2) en el dominio temporal, `susceptibility` de la ec. (14) del
+    paper, ya integrada por partes. Que coincidan valida ambas ramas, y en
+    particular que la resta de -phi^2/2 sea exactamente el contratermino de
+    masa de la ec. (10).
+    """
+    from nlaid.block1_linear import dispersion
+    ell = 1.0 / x
+    reg, pr = SmearedDelta(ell), Params(ell=ell)
+    a = dispersion(omega, reg, pr)
+    b = omega ** 2 * susceptibility(omega, reg, pr)
+    assert abs(a - b) / abs(b) < 1e-7, (x, omega, a, b)
+
+
+def test_dispersion_sin_renormalizar_deja_el_contratermino():
+    """Sin renormalizar, el coeficiente de omega^2 es 1 + delta_m/m, no 1.
+
+    Es el enunciado preciso de que la ec. linealizada cruda es la DESNUDA.
+    Se lee a omega pequeno, donde los ordenes omega^3 y omega^4 son despreciables.
+    """
+    from nlaid.block1_linear import dispersion
+    ell = 1.0 / 3.0
+    reg, pr = SmearedDelta(ell), Params(ell=ell)
+    om = 1e-3
+    razon = dispersion(om, reg, pr, renormalizada=False) / om ** 2
+    assert abs(razon.real - (1.0 + reg.mass_shift_over_m())) < 1e-6, razon
+
+
+def test_integrate_linear_relaja_por_debajo_del_critico():
+    """Debajo del cutoff critico (r0/ell = 4) la aceleracion decae; encima crece."""
+    from nlaid.core import make_regulator
+    from nlaid.block1_linear import integrate_linear
+    for x, decae in ((2.0, True), (5.0, False)):
+        ell = 1.0 / x
+        s, xi, xd, xa = integrate_linear(make_regulator("smeared", ell),
+                                         Params(ell=ell), s_end=18.0)
+        m = s > 4.0
+        tasa = np.polyfit(s[m], np.log(np.abs(xa[m]) + 1e-300), 1)[0]
+        assert bool(tasa < 0) is decae, (x, tasa)
+
+
+def test_integrate_linear_rechaza_el_regulador_distribucional():
+    """delta_B' de la ec. (4) no admite evaluacion puntual: debe fallar claro."""
+    from nlaid.block1_linear import integrate_linear
+    with pytest.raises(ValueError, match="distribucional"):
+        integrate_linear(ShiftedDelta(0.5), Params(ell=0.5), s_end=1.0)

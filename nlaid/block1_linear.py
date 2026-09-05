@@ -26,6 +26,8 @@ from .core import Params, Regulator
 
 __all__ = [
     "numerator_N",
+    "dispersion",
+    "integrate_linear",
     "susceptibility",
     "susceptibility_small_omega",
     "count_zeros_uhp",
@@ -301,3 +303,114 @@ def critical_cutoff(
         lo, hi = (lo, mid) if unstable(mid) else (mid, hi)
     return 0.5 * (lo + hi)
 
+
+
+# --------------------------------------------------------------------------
+# Rama en el TIEMPO: la misma teoria linealizada, integrada hacia adelante
+# --------------------------------------------------------------------------
+#
+# Linealizando la ec. (6) alrededor de la carga en reposo, x = (s, xi(s)) con
+# |xi| pequeno, se tiene a primer orden
+#     d = x - x' = (-u, Delta),  u = s'-s <= 0,  Delta = xi(s) - xi(s+u)
+#     w = d^2 = u^2 + O(xi^2)
+#     V = (0, Delta + u xidot(s+u))            <- solo componente espacial
+# de modo que las dos componentes colapsan a UNA ecuacion integro-diferencial
+# lineal y escalar:
+#
+#     xiddot(s) = 4 r_0B int_{-inf}^{0} du delta_B'(u^2)
+#                        [xi(s) - xi(s+u) + u xidot(s+u)]                 (*)
+#
+# Sustituyendo xi = e^{-i omega s} sale la relacion de dispersion, y su
+# desarrollo a omega pequeno reproduce los ordenes omega^3 y omega^4 de la
+# ec. (14) EXACTAMENTE, pero deja un omega^2 (1 + r_0B M0) en vez de omega^2,
+# con M0 = int du delta_B(u^2) = delta_m/(m r0). Es decir (*) es la ecuacion
+# DESNUDA: el termino que sobra es el contratermino de masa de la ec. (10).
+# Restarlo -- el -phi^2/2 de `_f_disp` -- da D(omega) = omega^2 chi^r_omega,
+# lo que se verifica numericamente en tests/test_block1.py.
+
+
+def _f_disp(phi, renormalizada: bool):
+    """1 - (1 + i phi) e^{-i phi}, mas phi^2/2 si se renormaliza la masa."""
+    f = 1.0 - (1.0 + 1j * phi) * np.exp(-1j * phi)
+    return f + 0.5 * phi ** 2 if renormalizada else f
+
+
+def _nodos_kernel(reg: Regulator, ell: float, n_ell: float, ds: float):
+    """Nodos u <= 0 SOBRE la malla y pesos de Simpson por delta_B'(u^2).
+
+    Elegir u_j = -j ds evita interpolar la historia en `integrate_linear`: la
+    memoria queda como una combinacion lineal de los ultimos N valores ya
+    calculados. `n` par garantiza que Simpson cierre.
+    """
+    n = 2 * max(2, int(round(n_ell * ell / (2 * ds))))
+    u = -np.arange(n, -1, -1) * ds
+    w = np.ones(n + 1); w[1:-1:2] = 4.0; w[2:-1:2] = 2.0
+    return u, (ds / 3.0) * w * reg.d_delta(u ** 2)
+
+
+def dispersion(omega, reg: Regulator, params: Params, renormalizada: bool = True,
+               n_ell: float = 60.0, pts_per_ell: int = 64):
+    """D(omega) de la ec. (*). Con `renormalizada`, D = omega^2 chi^r_omega.
+
+    Es una via INDEPENDIENTE a los mismos polos que `susceptibility`: esta parte
+    de delta_B' en el tiempo, aquella de la ec. (14) ya integrada por partes.
+    Que coincidan valida las dos.
+    """
+    ell = params.ell
+    u, k = _nodos_kernel(reg, ell, n_ell, ell / pts_per_ell)
+    om = np.atleast_1d(np.asarray(omega, dtype=complex))
+    out = om ** 2 + 4.0 * params.r0 * params.m_over_mB * np.einsum(
+        "j,ij->i", k, _f_disp(om[:, None] * u[None, :], renormalizada))
+    return out[0] if np.ndim(omega) == 0 else out
+
+
+def integrate_linear(reg: Regulator, params: Params, s_end: float = 40.0,
+                     ds: float | None = None, n_ell: float = 30.0,
+                     amp: float = 0.05, ancho: float = 1.0, blowup: float = 1e8):
+    """Integra la ec. (*) renormalizada hacia adelante. Devuelve (s, xi, xidot, xiddot).
+
+        (m_B/m) xiddot(s) = 4 r0 int du delta_B'(u^2)[xi(s) - xi(s+u) + u xidot(s+u)]
+                            + k(s)
+
+    La prehistoria xi = xidot = 0 es solucion EXACTA (carga en reposo), asi que
+    no hay salto en s = 0; la excitacion entra por la fuente externa k(s) de la
+    ec. (2), un pulso C^infinito de soporte compacto en [0, ancho].
+
+    Solo tiene sentido para el regulador suavizado: el desplazado es una
+    distribucion y su delta_B' no admite evaluacion puntual (esa rama es la
+    ec. 16, en block2_delay).
+    """
+    if reg.name != "smeared":
+        raise ValueError(
+            f"integrate_linear necesita un delta_B' evaluable; el regulador "
+            f"{reg.name!r} es distribucional. Use block2_delay para la ec. (4).")
+
+    ell, r0 = params.ell, params.r0
+    dm_sobre_m = reg.mass_shift_over_m(r0)
+    if abs(1.0 - dm_sobre_m) < 1e-12:
+        raise ValueError(
+            f"r0/ell = {r0/ell:.4g} da delta_m = m, o sea m_B = 0: el "
+            "contratermino diverge y la ecuacion renormalizada no existe.")
+
+    ds = ds or min(ell / 40.0, 5e-3)
+    u, k = _nodos_kernel(reg, ell, n_ell, ds)
+    n = len(u) - 1
+    K0, fac = k.sum(), 4.0 * r0 / (1.0 - dm_sobre_m)      # 1 - dm/m = m_B/m
+
+    xi, xd, xa = (np.zeros(n + 1 + int(np.ceil(s_end / ds))) for _ in range(3))
+    s = (np.arange(len(xi)) - n) * ds
+    pulso = lambda t: (amp * np.exp(-1.0 / (1.0 - (2 * t / ancho - 1) ** 2))
+                       if 0.0 < t < ancho else 0.0)
+
+    for i in range(n, len(xi) - 1):
+        xi_p = xi[i] + ds * xd[i] + 0.5 * ds ** 2 * xa[i]
+        xd_p, kext = xd[i] + ds * xa[i], pulso(s[i + 1])
+        hist = k[:-1] @ (-xi[i + 1 - n:i + 1] + u[:-1] * xd[i + 1 - n:i + 1])
+        for _ in range(3):                                # corrector: xi(s) es implicito
+            a_new = fac * (K0 * xi_p + hist) + kext
+            xd_p = xd[i] + 0.5 * ds * (xa[i] + a_new)
+            xi_p = xi[i] + 0.5 * ds * (xd[i] + xd_p)
+        xi[i + 1], xd[i + 1], xa[i + 1] = xi_p, xd_p, a_new
+        if abs(a_new) > blowup:
+            return s[:i + 2], xi[:i + 2], xd[:i + 2], xa[:i + 2]
+    return s, xi, xd, xa
