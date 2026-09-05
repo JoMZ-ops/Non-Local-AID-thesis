@@ -43,7 +43,11 @@ def main():
             sys.argv[1], sys.argv[1])
 
     kw = AJUSTES[reg]
+    salida = f"data/borde_{reg}.json"
+    # Imprime RAIZ: si el paquete instalado apunta a otro arbol
+    # (un `pip install -e` viejo), los resultados aterrizan alli.
     print(f"Borde de estabilidad -- regulador {reg} -- {kw}")
+    print(f"escribiendo en {RAIZ / salida}")
     print(f"{'r0/ell':>7} {'rama +':>10} {'rama -':>10} | "
           f"{'x(m/mB)+':>9} {'x(m/mB)-':>9}  tiempo")
 
@@ -70,7 +74,7 @@ def main():
         p, n = f(fila["positiva"]), f(fila["negativa"])
         print(f"{x:7.1f} {p:10.4f} {n:10.4f} | {x*p:9.3f} {x*n:9.3f}  "
               f"{time.time()-t0:.0f}s", flush=True)
-        json.dump(res, open(f"data/borde_{reg}.json", "w"), indent=1)
+        json.dump(res, open(salida, "w"), indent=1)
 
     prods = [x * v["positiva"] for x, v in res.items() if v["positiva"]]
     prodn = [x * v["negativa"] for x, v in res.items() if v["negativa"]]

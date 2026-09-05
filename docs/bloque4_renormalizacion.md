@@ -119,3 +119,70 @@ encajaría con F1 (la línea punteada del panel (b) sigue la ley del
 desplazado). **Es una hipótesis, no un hecho demostrado**: no se puede
 descartar que la equivalencia sea real y que el desacuerdo esté en mi
 implementación. Verificar antes de citar.
+
+## Borde de estabilidad R2: barrido completo en el cutoff
+
+`scripts/scan_borde.py` resuelve, para cada cutoff, el `m/m_B` donde la tasa
+de relajación se anula, en las dos ramas de signo de `m_B`. Datos en
+`data/borde_smeared.json` y `data/borde_shifted.json`.
+
+Suavizado, ec. (5) — `s_end = 14`, `ds = 1e-2`:
+
+| r0/ell | m/m_B (+) | m/m_B (−) | r_0B/ell (+) | r_0B/ell (−) |
+|---:|---:|---:|---:|---:|
+|  2 |  6.0280 | −2.7150 | 12.056 | −5.430 |
+|  3 |  4.0150 | −1.8180 | 12.045 | −5.454 |
+|  4 |  3.0090 | −1.3720 | 12.036 | −5.488 |
+|  6 |  2.0030 | −0.9260 | 12.018 | −5.556 |
+|  8 |  1.5000 | −0.7115 | 12.000 | −5.692 |
+| 10 |  1.2005 | −0.5719 | 12.005 | −5.719 |
+| 12 |  1.0000 | −0.4804 | 12.000 | −5.765 |
+
+Desplazado, ec. (4) — `s_end = 10`, `ds = 5e-3`:
+
+| r0/ell | m/m_B (+) | m/m_B (−) | r_0B/ell (+) | r_0B/ell (−) |
+|---:|---:|---:|---:|---:|
+|  2 | 0.6267 | −0.4900 | 1.253 | −0.980 |
+|  3 | 0.3412 | −0.3220 | 1.024 | −0.966 |
+|  4 | 0.2530 | −0.2447 | 1.012 | −0.979 |
+|  6 | 0.1704 | −0.1648 | 1.022 | −0.989 |
+|  8 | 0.1259 | −0.1234 | 1.007 | −0.987 |
+| 12 | 0.0878 | −0.0836 | 1.053 | −1.004 |
+
+`r_0B = r0 (m/m_B)` es el radio clásico **desnudo**.
+
+### Lo que se puede afirmar
+
+1. **La frontera es una condición sobre `r_0B/ell`, no sobre `r0/ell`.** En las
+   cuatro ramas el producto es estacionario mientras `m/m_B` recorre casi dos
+   órdenes de magnitud (de 6.03 a 0.084). El criterio de estabilidad compara
+   el acoplamiento desnudo con el cutoff.
+2. **Suavizado, rama positiva: `r_0B/ell = 12.00`**, alcanzado
+   monótonamente desde arriba. Es el resultado más limpio del barrido.
+3. **Desplazado: `|r_0B/ell| ≈ 1` en ambas ramas**, con dispersión compatible
+   con la tolerancia de bisección (`tol = 3e-3` en `m/m_B`, que a `r0/ell = 12`
+   son 0.036 en el producto). El punto `r0/ell = 2` es el outlier de la rama
+   positiva (1.253) y es exactamente donde `delta_m = m` para este regulador:
+   el contratérmino diverge ahí, así que el punto está en el borde del dominio
+   y no debe promediarse con los demás.
+
+### Lo que queda abierto
+
+- **La asimetría entre ramas del suavizado.** La rama negativa deriva de −5.43
+  a −5.77 sin estacionarse. Extrapolando en `1/x` sobre los últimos 3–5 puntos
+  el límite sale entre −5.89 y −5.97, **compatible con −6** (y por tanto con
+  una razón exacta −2 frente a la rama positiva), pero la dispersión de los
+  ajustes es del mismo orden que la separación respecto de −6. **No es
+  concluyente a la tolerancia actual.** Lo decidiría bajar `tol` a 1e-4 y
+  añadir `r0/ell = 20, 30`.
+- **Por qué el desplazado es casi simétrico (+1.02 / −0.99) y el suavizado no
+  (+12.0 / −5.8).** Sin explicación por ahora.
+
+### Trampa operativa encontrada durante este barrido
+
+`pip install -e .` había quedado apuntando a un clon desechable en `/tmp`. Como
+`python3 scripts/foo.py` pone `scripts/` en `sys.path[0]` y **no** el directorio
+de trabajo, `import nlaid` resolvía al paquete instalado y `RAIZ` apuntaba al
+clon: los resultados se escribían allí en silencio. Los `.py` eran idénticos, de
+modo que los números eran válidos, pero el `.json` del repo no se actualizaba.
+`scan_borde.py` ahora imprime la ruta de salida al arrancar.
