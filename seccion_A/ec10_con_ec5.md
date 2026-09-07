@@ -100,11 +100,45 @@ de `nlaid/core.py`), coincidiendo a 1e-12 para `ℓ = 0.7`:
   lectura erronea dz*sqrt(z) = 2.800000  (= 4 ell, diverge al reves)
 ```
 
-## Contraste con el regulador desplazado, ec. (4)
+## La misma ec. (10) con el regulador desplazado, ec. (4)
 
-Para `δ_B(z) = δ(z − ℓ²)` la ec. (10) es inmediata: `∫dz z^{-1/2}δ(z−ℓ²) = 1/ℓ`,
-luego `δm/m = r₀/(2ℓ)`, y `m_B` se anula en `r₀/ℓ = 2`. El suavizado da el mismo
-comportamiento `1/ℓ` con coeficiente tres veces menor: la delta desplazada pone
-todo el peso en `z = ℓ²`, mientras que la suavizada lo reparte sobre `z ≳ ℓ²`,
-donde `z^{-1/2}` pesa menos. Es reparto del peso del regulador, no física
-distinta — como debe ser, ya que `δm` es un contratérmino.
+    δ_B(z) = δ(z − ℓ²)
+
+La integral es inmediata por la propiedad de filtrado — la raíz `z = ℓ²` cae
+dentro del rango `z > 0`, así que la delta se consume entera:
+
+    ∫₀^∞ dz z^{-1/2} δ(z − ℓ²) = (ℓ²)^{-1/2} = 1/ℓ
+
+    ⟹  δm = e² / (2 c² ℓ)          y        δm/m = r₀ / (2ℓ)
+
+**Qué cambia y qué no.** Frente al suavizado, `e²/(6c²ℓ)`, cambia solo el
+coeficiente: un `1/2` en vez de un `1/6`, factor 3 exacto. No cambian:
+
+1. **La ley de divergencia**, `δm ∼ e²/(c²ℓ) = m r₀/ℓ`: lineal en el cutoff
+   `Λ = 1/ℓ` para los dos reguladores. Es la autoenergía electrostática clásica.
+2. **La fuerza de Abraham-Lorentz**: el otro término de la ec. (9) es
+   `(2/3) r_0B x⃛`, sin `ℓ` y sin rastro del regulador. Ahí está la estructura de
+   anomalía: el integrando diverge como `O(ℓ^{-1})`, su parte divergente es
+   convención, y el residuo finito es universal.
+
+Que el coeficiente dependa del regulador es lo esperado: `δm` es un
+**contratérmino**, cantidad no universal. La delta desplazada concentra todo el
+peso en `z = ℓ²`; la suavizada lo reparte sobre `z ≳ ℓ²`, donde `z^{-1/2}` pesa
+menos. De ahí el 3.
+
+Lo único observable del cambio de coeficiente es dónde muere el bare mass:
+`m_B = 0` en `r₀/ℓ = 2` (desplazado) frente a `r₀/ℓ = 6` (suavizado). Son las dos
+asíntotas verticales de la línea punteada de las Figs. 2(a) y 2(b) del paper, y
+la razón de que Polonyi dibuje dos paneles.
+
+**Verificación** (`ℓ = 0.7`, tres vías, ninguna es la forma cerrada):
+
+| vía | valor de `∫dz z^{-1/2}δ_B(z)` |
+|---|---|
+| límite gaussiano, `ε = 10⁻², 10⁻³, 10⁻⁴` | `1.4287948`, `1.4285737`, `1.4285715` |
+| `ShiftedDelta.nodes_weights`: `2 ∫du δ_B(u²)` | `1.4285714286` |
+| cerrada `1/ℓ` | `1.4285714286` |
+
+(la delta desplazada es distribucional: `ShiftedDelta.delta` devuelve cero por
+diseño, así que la cuadratura directa no aplica y el chequeo va por el límite de
+una gaussiana estrecha centrada en `z = ℓ²`.)
