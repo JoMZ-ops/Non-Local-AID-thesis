@@ -77,6 +77,15 @@ Dimensionalmente, `δ_B` tiene dimensión `1/z` por la condición (i), de modo q
 
 La lectura correcta es `dz/√z`, verificada contra la imagen de la p. 7.
 
+**Ojo con un falso amigo.** La forma correcta *también* exhibe un `√z`, porque
+`z^{-1/2} · z = z^{1/2}`:
+
+    δm = (e²/24 ℓ⁴ c²) ∫₀^∞ dz √z e^{−√z/ℓ}          ← correcta,  = e²/(6c²ℓ)
+
+de modo que ver un `√z` en el integrando no dice nada. Lo que separa las dos
+lecturas es el exponente bajo el peso exponencial: `z^{1/2}` (correcta, `4ℓ³`,
+momento `p = −1/2`) frente a `z^{3/2}` (errónea, `48ℓ⁵`, momento `p = +1/2`).
+
 ## Verificación numérica
 
 `seccion_A/fig_ec7_ec10.py` imprime tres vías independientes al mismo número
