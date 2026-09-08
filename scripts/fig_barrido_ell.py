@@ -22,7 +22,7 @@ from nlaid.block1_linear import dominant_pole
 from nlaid.block3_memory import integrate_memory
 from nlaid.block4_renorm import linearized_rate
 
-CACHE = "figures/barrido_ell.npz"
+CACHE = RAIZ / "figures/barrido_ell.npz"
 ELLS = np.array([2.0, 1.0, 0.5, 0.3, 0.2])      # r0/ell = 0.5, 1, 2, 3.33, 5
 M_OVER_MB = 0.5
 S_END, DS = 12.0, 5e-3
@@ -72,10 +72,6 @@ def compute(ells=ELLS, m_over_mB=M_OVER_MB, force=False):
 
 
 def main(ells=ELLS, m_over_mB=M_OVER_MB, force=None):
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
     d = compute(ells, m_over_mB,
                 force=("--force" in sys.argv) if force is None else force)
     ells = d["ells"]
@@ -139,8 +135,9 @@ def main(ells=ELLS, m_over_mB=M_OVER_MB, force=None):
     fig.suptitle(f"Barrido en el cutoff $\\ell$  —  ec. (17), $m/m_B$ = {d['m_over_mB']}",
                  x=0.008, ha="left", fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.92))
-    fig.savefig("figures/barrido_ell.png", dpi=170, facecolor="#fcfcfb")
-    print("\nfigures/barrido_ell.png")
+    salida = RAIZ / "figures/barrido_ell.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print("\n", salida)
 
 
 if __name__ == "__main__":

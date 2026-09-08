@@ -34,7 +34,7 @@ from nlaid.block1_linear import susceptibility
 
 CUTOFFS = [2.0, 3.0, 4.0]
 CRITICO = 4.0
-LOCUS = "figures/seccionA_ec14_locus.npz"
+LOCUS = RAIZ / "figures/seccionA_ec14_locus.npz"
 
 RAMPA = ["#86b6ef", "#2a78d6", "#104281"]
 INK, MUTED, GRID, ROJO = "#1a1a19", "#5c5b54", "#e4e3dd", "#c1442e"
@@ -145,7 +145,6 @@ def verifica():
 
 
 def main():
-    os.chdir(RAIZ)
     fig, axes = plt.subplots(1, 3, figsize=(16.0, 4.7))
     panel_eje_real(axes[0])
     panel_corchete(axes[1])
@@ -166,8 +165,9 @@ def main():
                  "Abraham-Lorentz y tira la memoria", x=0.008, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/seccionA_ec15_vs_ec14.png", dpi=170, facecolor="#fcfcfb")
-    print("figures/seccionA_ec15_vs_ec14.png")
+    salida = RAIZ / "figures/seccionA_ec15_vs_ec14.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print(salida)
     verifica()
 
 
