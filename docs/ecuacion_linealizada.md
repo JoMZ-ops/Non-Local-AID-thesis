@@ -76,6 +76,13 @@ El periodo coincide a 4 cifras. La fila r₀/ℓ = 4.00 da tasa −0.0002: es el
 punto marginal, y cae sobre el `critical_cutoff` = 4.00 del bloque 1, obtenido
 por principio del argumento sin integrar ninguna trayectoria.
 
+Las dos rutas de esta tabla están en el **mismo punto del plano de fases**
+—el renormalizado—: `integrate_linear` divide por `1 − δm/m` y el cero
+espectral se busca con `Params(ell=ell)`, o sea `m/m_B = 1`, que es donde
+`dispersion` vale `ω²χ^r_ω`. Por eso coinciden. Al comparar contra los bloques
+2 y 3, donde `m/m_B` **sí** es un parámetro libre, hace falta la salvedad de
+`docs/comparabilidad_bloques.md`.
+
 ## Límites de validez
 
 - **Sólo regulador suavizado.** δ_B' de la ec. (4) es distribucional y no admite

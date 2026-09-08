@@ -84,6 +84,11 @@ Momento general del suavizado: `∫₀^∞ dz z^p δ_B(z) = ℓ^{2p} Γ(2p+4)/6`
   las ecs. 6/16/17, no una restricción impuesta: `WorldLine.norm_drift` mide su
   deriva como error de integración).
 - `dim = 2` por defecto (1+1D), que es donde el paper produce sus figuras.
+- **`m/m_B` es el segundo eje del plano de fases, y no significa lo mismo en
+  todos los bloques**: `susceptibility` (ec. 14) no lo lee — la renormalización
+  ya está dentro — mientras que las ecs. (16) y (17) lo toman como parámetro
+  libre. Comparar bloques solo por `r₀/ℓ` da veredictos opuestos sobre
+  estabilidad con la misma ecuación. Ver `docs/comparabilidad_bloques.md`.
 
 ## Estructura
 
