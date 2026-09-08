@@ -55,7 +55,8 @@ se corta a la mitad. La rama de desarrollo es
 `Electrodynamics---Abraham-&-Lorentz-Force`.)
 
 Los scripts localizan `figures/` y `data/` a partir de `nlaid.RAIZ`, no del
-directorio de trabajo, así que corren igual desde donde sea:
+directorio de trabajo, y **no lo modifican**, así que corren igual desde donde
+sea sin dejar rastro en tu sesión:
 
 ```python
 !python Non-Local-AID-thesis/scripts/fig_barrido_ell.py
@@ -64,30 +65,24 @@ directorio de trabajo, así que corren igual desde donde sea:
 o desde dentro del notebook. **`scripts/` no es un paquete instalable** — `pip`
 solo instala `nlaid` —, así que un `import scripts...` falla con
 `ModuleNotFoundError`. Lo correcto es la magia nativa de IPython/Colab, que
-ejecuta el script en el espacio de nombres del notebook. **Constrúyele la ruta
-desde `nlaid.RAIZ`, no a mano:**
+ejecuta el script en el espacio de nombres del notebook:
 
 ```python
-import nlaid
-ruta = f"{nlaid.RAIZ}/scripts/fig_barrido_ell.py"
-%run $ruta
+%run Non-Local-AID-thesis/scripts/fig_barrido_ell.py
+%run Non-Local-AID-thesis/seccion_A/fig_ec14_polos.py
 ```
 
-Con una ruta relativa escrita a mano (`%run Non-Local-AID-thesis/scripts/...`)
-el **primer** `%run` funciona y el **segundo** falla con
+**Instalas una vez y a partir de ahí la ruta relativa vale siempre**: ningún
+script cambia el directorio de trabajo. Las rutas de salida se construyen desde
+`nlaid.RAIZ` (`fig.savefig(RAIZ / "figures/...")`), así que el archivo aterriza
+en el repo aunque invoques el script desde donde sea, y tu `cwd` queda intacto.
 
-```
-Exception: File `'Non-Local-AID-thesis/scripts/...py'` not found.
-```
-
-porque cada script hace `os.chdir(nlaid.RAIZ)` al arrancar — así escribe en
-`figures/` sin depender de desde dónde lo invoques. El efecto secundario es que,
-después del primer `%run`, el directorio de trabajo del notebook **ya es la raíz
-del repo**, y la ruta relativa que antes servía deja de resolver. La forma con
-`nlaid.RAIZ` es absoluta y no le afecta.
-
-Si ya te pasó, no hace falta reiniciar nada: usa la forma de arriba, o vuelve
-con `%cd ..`.
+> Hasta el commit `fc017d9` cada script hacía `os.chdir(RAIZ)` al arrancar. El
+> efecto secundario era que, tras el primer `%run`, el `cwd` del notebook pasaba
+> a ser la raíz del repo y el segundo `%run` con ruta relativa fallaba con
+> `Exception: File ... not found`. Si ves ese error, tu clon es anterior al
+> arreglo: vuelve a clonar, o usa `f"{nlaid.RAIZ}/scripts/..."`, que es absoluta
+> y funciona en cualquier versión.
 
 Después de eso, `compute`, `main` y `ELLS` quedan disponibles, y el barrido se
 puede repetir con otros cutoffs sin editar el archivo:
@@ -111,18 +106,16 @@ matplotlib.use("Agg")
 
 `Agg` es el backend *sin pantalla*: dibuja a un archivo, nunca a una ventana ni
 a la salida del notebook. Ninguno de los scripts llama a `plt.show()`; todos
-terminan en `fig.savefig("figures/...png")` y anuncian la ruta. Es lo correcto
+terminan en `fig.savefig(RAIZ / "figures/...png")` y anuncian la ruta. Es lo correcto
 para un script que también debe correr por línea de comandos o en CI, donde no
 hay pantalla que valga.
 
 Para **ver** la figura en el notebook, muéstrala después de generarla:
 
 ```python
-import nlaid
-ruta = f"{nlaid.RAIZ}/seccion_A/fig_ec7_ec10.py"
-%run $ruta
+%run Non-Local-AID-thesis/seccion_A/fig_ec7_ec10.py
 from IPython.display import Image
-Image(f"{nlaid.RAIZ}/figures/seccionA_ec7_ec10.png")
+Image("Non-Local-AID-thesis/figures/seccionA_ec7_ec10.png")
 ```
 
 Dos avisos prácticos:

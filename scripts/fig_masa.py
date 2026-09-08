@@ -15,8 +15,6 @@ Panel B  m_B/m = 1 - delta_m/m. Se grafica esta y no m/m_B porque no diverge:
 Uso:  python3 scripts/fig_masa.py
 """
 
-import os
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -34,10 +32,6 @@ CRUCE = {"shifted": 2.0, "smeared": 6.0}
 
 
 def main():
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
     x = np.linspace(0.05, 20, 800)          # r0/ell
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.4))
 
@@ -89,8 +83,9 @@ def main():
                  "(Polonyi 2019, ec. 10)", x=0.011, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/masa_vs_cutoff.png", dpi=170, facecolor="#fcfcfb")
-    print("figures/masa_vs_cutoff.png")
+    salida = RAIZ / "figures/masa_vs_cutoff.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print(salida)
 
     print("\nTabla: delta_m/m y m_B/m")
     print(f"{'r0/ell':>7} | {'suavizado dm/m':>15} {'m_B/m':>9} | "

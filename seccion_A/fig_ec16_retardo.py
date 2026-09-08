@@ -47,7 +47,7 @@ from nlaid.core import Params, make_regulator
 from nlaid.block2_delay import integrate_delay
 from nlaid.worldline import smooth_bump
 
-CACHE = "figures/seccionA_ec16.npz"
+CACHE = RAIZ / "figures/seccionA_ec16.npz"
 CUTOFFS = [0.4, 0.8]                     # a ambos lados del critico linealizado
 CRITICO_LINEAL = 0.669
 ELL_GEO = 1.0                            # r0/ell = 1 para los paneles A y B
@@ -235,7 +235,6 @@ def panel_trayectorias(ax, d):
 
 
 def main():
-    os.chdir(RAIZ)
     d = compute(force="--force" in sys.argv)
 
     fig, axes = plt.subplots(1, 3, figsize=(16.0, 5.0))
@@ -259,8 +258,9 @@ def main():
                  "geometría invariante", x=0.008, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/seccionA_ec16_retardo.png", dpi=170, facecolor="#fcfcfb")
-    print("figures/seccionA_ec16_retardo.png")
+    salida = RAIZ / "figures/seccionA_ec16_retardo.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print(salida)
 
 
 if __name__ == "__main__":

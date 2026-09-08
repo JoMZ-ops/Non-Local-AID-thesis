@@ -16,8 +16,6 @@ Panel B  integrando z^{-1/2} delta_B(z) de la ec. (10), adimensionalizado. Su
 Uso:  python3 seccion_A/fig_ec7_ec10.py
 """
 
-import os
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -123,7 +121,6 @@ def verifica():
 
 
 def main():
-    os.chdir(RAIZ)
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.6))
     panel_ec7(axA)
     panel_ec10(axB)
@@ -143,8 +140,9 @@ def main():
                  "(regulador suavizado, ec. 5)", x=0.011, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/seccionA_ec7_ec10.png", dpi=170, facecolor="#fcfcfb")
-    print("figures/seccionA_ec7_ec10.png")
+    salida = RAIZ / "figures/seccionA_ec7_ec10.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print(salida)
     verifica()
 
 

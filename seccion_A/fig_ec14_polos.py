@@ -36,7 +36,7 @@ from nlaid.block1_linear import convergence_lower_bound, find_zeros_uhp, suscept
 
 MAPAS = [(3.0, "A", "estable"), (5.0, "B", "inestable")]
 SWEEP = np.concatenate([np.linspace(2.0, 5.4, 35), np.linspace(5.6, 20.0, 30)])
-CACHE = "figures/seccionA_ec14_locus.npz"
+CACHE = RAIZ / "figures/seccionA_ec14_locus.npz"
 
 INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 AZUL, ROJO, VERDE = "#2a78d6", "#c1442e", "#2e7d5b"
@@ -200,7 +200,6 @@ def verifica():
 
 
 def main():
-    os.chdir(RAIZ)
     warnings.filterwarnings("ignore")        # Newton avisa al tantear lejos
     z = locus(force="--force" in sys.argv)
 
@@ -224,8 +223,9 @@ def main():
                  "respuesta, y deciden la estabilidad (regulador suavizado)",
                  x=0.008, ha="left", fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/seccionA_ec14_polos.png", dpi=170, facecolor="#fcfcfb")
-    print("\nfigures/seccionA_ec14_polos.png")
+    salida = RAIZ / "figures/seccionA_ec14_polos.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print("\n", salida)
     verifica()
 
 

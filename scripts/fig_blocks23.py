@@ -24,7 +24,7 @@ from nlaid import RAIZ
 from nlaid.core import Params
 from nlaid.block3_memory import integrate_memory
 
-CACHE = "figures/blocks23_datos.npz"
+CACHE = RAIZ / "figures/blocks23_datos.npz"
 ELL = 1.0 / 3.0                      # r0/ell = 3, como en la Fig. 1
 S_END, DS = 25.0, 5e-3
 
@@ -56,10 +56,6 @@ def compute(force=False):
 
 
 def main():
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
     data = compute(force="--force" in sys.argv)
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.6))
 
@@ -120,8 +116,9 @@ def main():
                  "(reproducción de la Fig. 1 de Polonyi 2019)",
                  x=0.011, ha="left", fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/blocks23_fig1.png", dpi=170, facecolor="#fcfcfb")
-    print("\nfigures/blocks23_fig1.png")
+    salida = RAIZ / "figures/blocks23_fig1.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print("\n", salida)
 
 
 if __name__ == "__main__":

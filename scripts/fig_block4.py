@@ -23,13 +23,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from nlaid import RAIZ
+
 MIO = "#2a78d6"        # calculo propio
 PAPER = "#eb6834"      # digitalizacion del paper
 INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 
 
 def carga_mio(reg):
-    ruta = f"data/borde_{reg}.json"
+    ruta = RAIZ / f"data/borde_{reg}.json"
     if not os.path.exists(ruta):
         return None
     d = json.load(open(ruta))
@@ -49,11 +51,7 @@ def cte(x, y):
 
 
 def main():
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
-    dig = np.load("data/fig2_digitalizada.npz")
+    dig = np.load(RAIZ / "data/fig2_digitalizada.npz")
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8))
 
     for ax, pan, reg, titulo in (
@@ -102,8 +100,9 @@ def main():
                  "de Polonyi (2019)", x=0.011, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
-    fig.savefig("figures/block4_borde.png", dpi=170, facecolor="#fcfcfb")
-    print("figures/block4_borde.png")
+    salida = RAIZ / "figures/block4_borde.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print(salida)
 
 
 if __name__ == "__main__":

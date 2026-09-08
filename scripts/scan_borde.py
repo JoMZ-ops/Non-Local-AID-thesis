@@ -13,7 +13,6 @@ Salida: data/borde_<regulador>.json
 """
 
 import json
-import os
 import sys
 import time
 import warnings
@@ -33,21 +32,17 @@ CUTOFFS = [2.0, 3.0, 4.0, 6.0, 8.0, 12.0]
 
 
 def main():
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
     reg = "smeared"
     if len(sys.argv) > 1:
         reg = {"suavizado": "smeared", "desplazado": "shifted"}.get(
             sys.argv[1], sys.argv[1])
 
     kw = AJUSTES[reg]
-    salida = f"data/borde_{reg}.json"
+    salida = RAIZ / f"data/borde_{reg}.json"
     # Imprime RAIZ: si el paquete instalado apunta a otro arbol
     # (un `pip install -e` viejo), los resultados aterrizan alli.
     print(f"Borde de estabilidad -- regulador {reg} -- {kw}")
-    print(f"escribiendo en {RAIZ / salida}")
+    print(f"escribiendo en {salida}")
     print(f"{'r0/ell':>7} {'rama +':>10} {'rama -':>10} | "
           f"{'x(m/mB)+':>9} {'x(m/mB)-':>9}  tiempo")
 

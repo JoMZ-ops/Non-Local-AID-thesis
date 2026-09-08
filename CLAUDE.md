@@ -105,7 +105,10 @@ Momento general del suavizado: `∫₀^∞ dz z^p δ_B(z) = ℓ^{2p} Γ(2p+4)/6`
 | `docs/` | notas de lectura y derivaciones a mano |
 
 Salidas a `figures/` y `data/`, localizadas vía `nlaid.RAIZ`, nunca vía el
-directorio de trabajo. Instalación: `pip install -e ".[dev]"`.
+directorio de trabajo: `fig.savefig(RAIZ / "figures/x.png")`, `CACHE = RAIZ /
+"figures/x.npz"`. **Ningún script llama a `os.chdir`** — cambiar el `cwd` del
+proceso que invoca es un efecto secundario, y rompía el segundo `%run` con ruta
+relativa en un notebook. Instalación: `pip install -e ".[dev]"`.
 
 ## Estilo de trabajo acordado
 

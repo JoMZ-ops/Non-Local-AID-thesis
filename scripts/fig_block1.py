@@ -25,7 +25,7 @@ COLOR = {"shifted": "#2a78d6", "smeared": "#eb6834"}
 LABEL = {"shifted": "desplazado  ec. (4)", "smeared": "suavizado  ec. (5)"}
 INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 
-CACHE = "figures/block1_datos.npz"
+CACHE = RAIZ / "figures/block1_datos.npz"
 
 # Parametros que DEFINEN el calculo. Van al cache y se comparan al cargarlo:
 # si cambian -- o si se corrige un bug aguas abajo y se sube RECETA -- el
@@ -96,10 +96,6 @@ def compute(force=False):
 
 
 def main():
-    # Las rutas de figures/ y data/ son relativas a la raiz del repo, no al
-    # directorio desde el que se invoque el script.
-    os.chdir(RAIZ)
-
     xs, poles, crit = compute(force="--force" in sys.argv)
 
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(11.5, 4.4))
@@ -165,9 +161,9 @@ def main():
                  "(Polonyi 2019, ec. 14)", x=0.011, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.94))
-    fig.savefig("figures/block1_estabilidad.png", dpi=170,
-                facecolor="#fcfcfb")
-    print("\nfigures/block1_estabilidad.png")
+    salida = RAIZ / "figures/block1_estabilidad.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print("\n", salida)
 
 
 if __name__ == "__main__":

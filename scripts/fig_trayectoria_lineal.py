@@ -31,7 +31,7 @@ CRITICO = 4.00
 S_END, TAU = 40.0, 2.0 / 3.0          # tau = 2 r0 / 3, tiempo de Abraham-Lorentz
 XI_MAX = 0.32     # la linealizacion supone |xi| << r0: mas alla la curva no
                   # describe nada y solo tapa las demas. Se corta, no se recorta.
-CACHE = "figures/trayectoria_lineal.npz"
+CACHE = RAIZ / "figures/trayectoria_lineal.npz"
 
 # Rampa secuencial del repo: r0/ell es una MAGNITUD, no una identidad, asi que
 # el color va de claro a oscuro y no por hues categoricos.
@@ -95,7 +95,6 @@ def markov(s_end=6.0, amp=0.05, ancho=1.0):
 
 
 def main():
-    os.chdir(RAIZ)
     d = compute(force="--force" in sys.argv)
     colores = _colores(len(CUTOFFS))
     fig, (axA, axB, axC) = plt.subplots(1, 3, figsize=(14.5, 4.5))
@@ -169,8 +168,9 @@ def main():
                  f"(regulador suavizado, crítico en $r_0/\\ell$ = {CRITICO:.0f})",
                  x=0.008, ha="left", fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.92))
-    fig.savefig("figures/trayectoria_lineal.png", dpi=170, facecolor="#fcfcfb")
-    print("\nfigures/trayectoria_lineal.png")
+    salida = RAIZ / "figures/trayectoria_lineal.png"
+    fig.savefig(salida, dpi=170, facecolor="#fcfcfb")
+    print("\n", salida)
 
 
 def _cero_dominante(reg, pr):
