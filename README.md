@@ -163,8 +163,9 @@ se pierde el historial, y dos copias del mismo código divergen en una tarde.
 En Colab los archivos del clon son **efímeros**: al cerrar la sesión se borran.
 Sirve para correr, no para editar. Si igual quieres editar ahí, abre el archivo
 con el explorador de archivos (panel izquierdo, doble clic) y guarda con
-`Ctrl+S`, sabiendo que el cambio muere con la sesión salvo que hagas
-`git commit` y `git push` desde el notebook.
+`Ctrl+S`: el cambio corre de inmediato, pero muere con la sesión si no lo
+llevas al repositorio — ver **«Editaste en Colab y funciona: ¿cómo lo
+guardas?»** más abajo.
 
 Con la instalación editable (`pip install -e`), tras cambiar un archivo de
 `nlaid/` basta con reiniciar el kernel, o mejor:
@@ -175,6 +176,81 @@ Con la instalación editable (`pip install -e`), tras cambiar un archivo de
 ```
 
 y a partir de ahí cada celda vuelve a leer el archivo modificado sola.
+
+### Editaste en Colab y funciona: ¿cómo lo guardas?
+
+El clon de Colab es una copia efímera. Ya verificaste el cambio ahí; ahora hay
+que llevarlo al repositorio. Tres rutas.
+
+**1. Descargar y subir a GitHub.** La más simple, sin credenciales.
+
+Panel de archivos de Colab → clic derecho sobre el archivo → *Descargar*. En
+GitHub, en la rama de desarrollo: *Add file → Upload files*, arrastras el
+archivo **dentro de la carpeta que le corresponde** (`scripts/`, `nlaid/`…),
+mensaje de commit, *Commit changes*.
+
+Sube el archivo entero, así que no hay riesgo de pegar de más o de menos, y
+**funciona con los PNG de `figures/`**, que son binarios.
+
+**2. Copiar y pegar en GitHub web.** Solo para archivos de texto: `Ctrl+A`,
+`Ctrl+C` en el editor de Colab; en GitHub, ✏️ sobre el archivo, `Ctrl+A`,
+`Ctrl+V`, commit. Más frágil que la ruta 1 y no sirve para figuras.
+
+**3. `git push` desde el propio Colab.** Requiere un *personal access token* con
+permiso de escritura (*Contents*) sobre el repo. Primero, actualizar el clon y
+commitear:
+
+```python
+!git -C Non-Local-AID-thesis config user.name  "Tu Nombre"
+!git -C Non-Local-AID-thesis config user.email "tu@correo"
+!git -C Non-Local-AID-thesis add -A
+!git -C Non-Local-AID-thesis commit -m "fig_masa: marca el cutoff critico"
+!git -C Non-Local-AID-thesis pull --rebase
+```
+
+El `pull --rebase` no es opcional: si la rama avanzó desde que clonaste, el push
+se rechaza. Y luego:
+
+```python
+import getpass, subprocess
+tok = getpass.getpass("Token de GitHub: ")      # no se ve ni queda en el .ipynb
+subprocess.run(["git", "-C", "Non-Local-AID-thesis", "push",
+                f"https://{tok}@github.com/JoMZ-ops/Non-Local-AID-thesis.git",
+                "HEAD:Electrodynamics---Abraham-&-Lorentz-Force"], check=True)
+```
+
+Tres precauciones, porque un token es una credencial:
+
+1. **Nunca lo escribas literal en una celda**: el notebook se guarda con todo lo
+   que teclaste dentro. De ahí `getpass`.
+2. `subprocess.run` con lista, **no** `!git push https://TOKEN@...`: con `!` el
+   comando pasa por el shell y el token puede quedar en el historial y en la
+   salida de la celda.
+3. Si el push falla, el error **puede incluir la URL con el token**. Borra la
+   salida de esa celda si ocurre.
+
+| situación | ruta |
+|---|---|
+| un cambio suelto, de vez en cuando | **1** |
+| vas a editar seguido desde Colab | **3** (se configura una vez) |
+| trabajo sostenido | clon local: `git push` sin ceremonia |
+
+**Antes de subir, mira el resultado, no solo que no haya fallado.** «Corrió sin
+error» y «quedó bien» son cosas distintas — una anotación puede salirse del
+panel sin que Python se queje:
+
+```python
+from IPython.display import Image
+Image("Non-Local-AID-thesis/figures/masa_vs_cutoff.png")
+```
+
+Si tocaste `nlaid/`, además `!python3 -m pytest -q Non-Local-AID-thesis`.
+
+Y commitea el código junto con la figura que produce, en el mismo commit: así el
+repo nunca tiene un PNG que no corresponde al código que lo generó.
+
+(Montar Google Drive y clonar ahí evita reclonar en cada sesión, pero **no**
+guarda nada en GitHub: para eso sigue haciendo falta una de las tres rutas.)
 
 ## Uso
 
