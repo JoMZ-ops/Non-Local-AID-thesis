@@ -131,6 +131,10 @@ plt.show()
 Los scripts de `figures/` son el **producto final**; `nlaid/` es la
 **herramienta**. Para explorar, importa la herramienta.
 
+`notebooks/seccion_A.ipynb` recorre así las ecs. (7), (10), (14), (15) y (16):
+arma cada gráfica en el notebook, con celdas cortas para cambiar un parámetro y
+volver a mirar. Es el punto de entrada recomendado si estás empezando.
+
 ### Dónde editar el código
 
 | quiero… | dónde | por qué |
