@@ -30,6 +30,9 @@ INK, MUTED, GRID = "#1a1a19", "#5c5b54", "#e4e3dd"
 # r0/ell donde delta_m = m, es decir donde m_B cambia de signo.
 CRUCE = {"shifted": 2.0, "smeared": 6.0}
 
+# r0/ell donde la teoria linealizada pierde estabilidad (block1.critical_cutoff).
+CRITICO = {"shifted": 0.669, "smeared": 4.00}
+
 
 def main():
     x = np.linspace(0.05, 20, 800)          # r0/ell
@@ -45,6 +48,12 @@ def main():
         axB.annotate(f"$r_0/\\ell = {CRUCE[kind]:.0f}$",
                      xy=(CRUCE[kind], 0.0), xytext=(6, 10),
                      textcoords="offset points", color=COLOR[kind], fontsize=9)
+        # La inestabilidad linealizada llega ANTES que delta_m = m: el cutoff
+        # critico esta a la izquierda del cruce en los dos reguladores.
+        axA.axvline(CRITICO[kind], color=COLOR[kind], lw=1.2, ls=":")
+        axA.annotate(f"crítico {CRITICO[kind]:.2f}", xy=(CRITICO[kind], 2.35),
+                     xytext=(4, 0), textcoords="offset points",
+                     color=COLOR[kind], fontsize=8.5, rotation=90)
 
     axA.axhline(1.0, color=MUTED, lw=1, ls=(0, (5, 4)))
     axA.annotate("$\\delta m = m$   $\\Rightarrow$   $m_B$ cambia de signo",
