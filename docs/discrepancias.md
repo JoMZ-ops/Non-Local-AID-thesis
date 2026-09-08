@@ -72,12 +72,35 @@ se truncan en la figura.
 
 ## Hipótesis a revisar (en orden de plausibilidad)
 
-1. **La condición de renormalización no se está imponiendo.** El paper *no* elige
-   `m/m_B` libremente: lo **fija** resolviendo la ec. (18),
-   `chi^r_omega = 1 + (2/3) i r0 omega`, monitoreando la relajación a `s` grande
-   (p. 10). Los valores de la Fig. 1 bracketean esa solución. Comparar corridas a
-   `m/m_B` arbitrario contra la Fig. 1 puede ser sencillamente la comparación
-   equivocada. **Esta es la vía más probable y la siguiente pieza a implementar.**
+1. ~~**La condición de renormalización no se está imponiendo.**~~ **IMPLEMENTADA
+   Y DESCARTADA como explicación de D1** (ver `seccion_A/fig_ec18_renormalizacion.py`).
+
+   Se impuso: barriendo `m/m_B` a `r0/ell = 3` y midiendo la tasa de relajación
+   de la ec. (17), la tasa cruza el `Im omega` del cero dominante de `chi`
+   exactamente en `m/m_B = 2.00`, que es el valor del contratérmino de la
+   ec. (10). Y no es un accidente del cutoff:
+
+   | `r0/ell` | `m/m_B` contratérmino | tasa de la ec. (17) | `Im omega` de la ec. (14) | dif |
+   |---|---|---|---|---|
+   | 2.0 | 1.5000 | `-0.8283` | `-0.8346` | 0.0064 |
+   | 2.5 | 1.7143 | `-0.8517` | `-0.8305` | 0.0212 |
+   | 3.0 | 2.0000 | `-0.7178` | `-0.7179` | 0.0002 |
+   | 3.5 | 2.4000 | `-0.4624` | `-0.4623` | 0.0000 |
+
+   **Consecuencia para D1: la hipótesis queda descartada.** La condición SÍ se
+   puede imponer, y el `m/m_B` que fija a `r0/ell = 3` es `2.00` — exactamente
+   el rango `1.95..2.00` de la Fig. 1(a). O sea, ya estábamos comparando en el
+   punto correcto del plano de fases, y aun así la relajación sale oscilatoria
+   con tasa `-0.72` en vez de la curva suave hasta `s/r0 = 300` del paper. D1
+   sigue abierta y ahora con una hipótesis menos.
+
+   **Lo que sí queda establecido**, y es resultado propio, no del paper:
+   la línea del contratérmino de la ec. (10) es la que satisface la condición
+   de renormalización operacional, y cruza el borde de estabilidad en
+   `r0/ell = 4.00` (borde medido `3.009` contra contratérmino `3.000`), el
+   mismo crítico que da el bloque 1 por principio del argumento. Tres vías
+   independientes — analítica (10), espectral (14) y no lineal (17) —
+   coincidiendo en el mismo punto del plano.
 
 2. **La condición inicial difiere.** El paper prescribe una trayectoria y apaga la
    fuente; aquí se usa un pulso externo `C^infinito` (ver `worldline.py` para por
@@ -97,14 +120,14 @@ se truncan en la figura.
    parametrizaciones distintas. **Verificar en el PDF original a alta resolución
    antes de sacar conclusiones.**
 
-## Prueba cruzada pendiente
+## Prueba cruzada — HECHA
 
-El contraste más fuerte disponible, aún no hecho: comparar la **tasa de
-relajación medida** por el bloque 3 contra los **ceros de `chi^r_omega` en el
-semiplano inferior** calculados por el bloque 1. Ambos bloques predicen la misma
-cantidad por caminos completamente independientes (integración temporal no lineal
-vs. análisis espectral linealizado). Si coinciden en el régimen de acoplamiento
-débil, valida los dos a la vez; si no, localiza el error.
+Comparar la **tasa de relajación medida** por el bloque 3 contra los **ceros de
+`chi^r_omega`** del bloque 1. Hecha en la hipótesis 1 de arriba, sobre la línea
+del contratérmino, que es donde las dos son comparables (ver
+`docs/comparabilidad_bloques.md`): coinciden a `2e-4` en el mejor caso y a
+`2e-2` en el peor. **Valida los dos bloques a la vez**, y refuerza que el
+desacuerdo con la Fig. 1(a) no es un error de integración ni de espectro.
 
 
 ---
