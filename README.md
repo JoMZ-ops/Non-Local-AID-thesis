@@ -64,11 +64,30 @@ directorio de trabajo, así que corren igual desde donde sea:
 o desde dentro del notebook. **`scripts/` no es un paquete instalable** — `pip`
 solo instala `nlaid` —, así que un `import scripts...` falla con
 `ModuleNotFoundError`. Lo correcto es la magia nativa de IPython/Colab, que
-ejecuta el script en el espacio de nombres del notebook:
+ejecuta el script en el espacio de nombres del notebook. **Constrúyele la ruta
+desde `nlaid.RAIZ`, no a mano:**
 
 ```python
-%run Non-Local-AID-thesis/scripts/fig_barrido_ell.py
+import nlaid
+ruta = f"{nlaid.RAIZ}/scripts/fig_barrido_ell.py"
+%run $ruta
 ```
+
+Con una ruta relativa escrita a mano (`%run Non-Local-AID-thesis/scripts/...`)
+el **primer** `%run` funciona y el **segundo** falla con
+
+```
+Exception: File `'Non-Local-AID-thesis/scripts/...py'` not found.
+```
+
+porque cada script hace `os.chdir(nlaid.RAIZ)` al arrancar — así escribe en
+`figures/` sin depender de desde dónde lo invoques. El efecto secundario es que,
+después del primer `%run`, el directorio de trabajo del notebook **ya es la raíz
+del repo**, y la ruta relativa que antes servía deja de resolver. La forma con
+`nlaid.RAIZ` es absoluta y no le afecta.
+
+Si ya te pasó, no hace falta reiniciar nada: usa la forma de arriba, o vuelve
+con `%cd ..`.
 
 Después de eso, `compute`, `main` y `ELLS` quedan disponibles, y el barrido se
 puede repetir con otros cutoffs sin editar el archivo:
@@ -99,9 +118,11 @@ hay pantalla que valga.
 Para **ver** la figura en el notebook, muéstrala después de generarla:
 
 ```python
-%run Non-Local-AID-thesis/seccion_A/fig_ec7_ec10.py
+import nlaid
+ruta = f"{nlaid.RAIZ}/seccion_A/fig_ec7_ec10.py"
+%run $ruta
 from IPython.display import Image
-Image("Non-Local-AID-thesis/figures/seccionA_ec7_ec10.png")
+Image(f"{nlaid.RAIZ}/figures/seccionA_ec7_ec10.png")
 ```
 
 Dos avisos prácticos:
