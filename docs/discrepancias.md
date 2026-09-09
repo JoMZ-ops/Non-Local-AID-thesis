@@ -113,12 +113,39 @@ se truncan en la figura.
 3. **Convención de signo o normalización en `m/m_B`.** Revisar si el `m/m_B` de la
    Fig. 1 es el mismo parámetro que multiplica `r0` en la ec. (17).
 
-4. **Tensión interna en el propio paper.** El rango del eje vertical de la Fig. 2
-   es aproximadamente `[-1.2, 0.7]`, que **no contiene** ninguno de los valores
-   usados en la Fig. 1 (`1.95..2.0` y `-3.8..-4.1`). Puede ser lectura mía de una
-   figura de baja resolución, o puede indicar que las dos figuras usan
-   parametrizaciones distintas. **Verificar en el PDF original a alta resolución
-   antes de sacar conclusiones.**
+4. **Tensión interna en el propio paper — VERIFICADA.** Ya no es lectura de una
+   figura borrosa: las figuras del PDF son **vectoriales**, y
+   `scripts/digitaliza_fig2.py` interpreta el content stream (matriz de
+   transformación, pila `q`/`Q`, patrón de guiones) para leer las coordenadas
+   que Mathematica escribió. Calibración por las marcas de eje: los ejes cruzan
+   en `(33.7, 67.0)` del espacio del PDF, con `8.7222` unidades por `r0/ell` y
+   `53.9` por `m/m_B`.
+
+   **La región visible de los dos paneles es**
+
+       r0/ell in [-0.42, 20.44]      m/m_B in [-1.243, 0.853]
+
+   La Fig. 1 usa `m/m_B = 1.95..2.00` y `-3.80..-4.10`. **Ninguno cabe.** La
+   tensión es real y ahora exacta (la estimación previa, `[-1.2, 0.7]`, era
+   buena).
+
+   Y hay más, en `seccion_A/fig_fig2_tension.py`:
+
+   - **Panel (a), desplazado: coincide con nuestro cálculo.** El borde del
+     paper y el nuestro tienen la misma forma `~C/x` y razón `0.58..1.07`.
+     Diferencia compatible con el propio aviso del paper de que el borde
+     depende de la trayectoria prescrita.
+   - **Panel (b), suavizado: no coincide.** Razón `3.4` a `300`, y ni siquiera
+     la misma forma: el nuestro es `12/x` exacto (es decir `r_0B/ell = 12`
+     constante), el del paper sube hasta `~0.35` en `r0/ell ~ 6` y baja.
+
+   **Conclusión.** El problema no está repartido entre las dos figuras: está
+   **localizado en el panel (b)**. Ese panel (i) dibuja la línea punteada del
+   panel (a) — ver F1, ahora exacto —, (ii) no reproduce un cálculo
+   independiente del borde, y (iii) es el que corresponde al regulador de la
+   Fig. 1, cuyos valores no caben en su eje. El panel (a) no tiene ninguno de
+   los tres problemas. Para la tesis: **citar el panel (a) es defendible; el
+   (b) no, sin una explicación del propio autor.**
 
 ## Prueba cruzada — HECHA
 
@@ -212,3 +239,14 @@ los dos paneles), o bien Polonyi define un `ell` efectivo distinto para el
 regulador suavizado — por ejemplo `ell_ef = ell/3`, que igualaría ambos
 `delta_m`. El paper no menciona tal reescalado. **Verificar antes de citar
 cualquiera de las dos curvas en la tesis.**
+
+**ACTUALIZACIÓN — es un desliz al graficar, sin margen de duda.** La
+digitalización por vectores (`scripts/digitaliza_fig2.py`) muestra que las dos
+ramas punteadas de los dos paneles son **la misma ruta vectorial**: mismo
+número de puntos (129 y 130) y `max|dif| = 0` **exacto**, no "0.002 de error
+medio". Un reescalado de `ell` produciría una curva distinta, no la misma lista
+de coordenadas. Queda descartada la hipótesis del `ell` efectivo: el panel (b)
+tiene copiada la curva del panel (a).
+
+Las curvas **sólidas**, en cambio, sí difieren entre paneles (391 y 391 puntos
+en el (a); 573 y 521 en el (b)), así que el desliz afecta solo a la punteada.
