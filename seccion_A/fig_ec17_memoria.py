@@ -72,10 +72,15 @@ def peso_memoria(wl, s_now, n_ell=25.0, n=800):
 def compute(force=False):
     if os.path.exists(CACHE) and not force:
         d = np.load(CACHE)
-        if np.array_equal(d["ventanas"], np.array(VENTANAS)):
+        # La receta incluye INSTANTES y S_END: sin ellos, agregar un instante
+        # devolvia el cache viejo y la figura no reflejaba el cambio.
+        if (np.array_equal(d["ventanas"], np.array(VENTANAS))
+                and np.array_equal(d["instantes"], np.array(INSTANTES))
+                and float(d["s_end"]) == S_END):
             return {k: d[k] for k in d.files}
 
-    out = {"ventanas": np.array(VENTANAS)}
+    out = {"ventanas": np.array(VENTANAS), "instantes": np.array(INSTANTES),
+           "s_end": np.array(S_END)}
     wl_ref, a_ref = perfil(N_REF)
     sg = np.linspace(0.0, S_END, 1200)
     out["sg"] = sg
@@ -107,7 +112,13 @@ def panel_peso(ax, d):
     curvas multilobuladas de las que no se lee nada. La acumulada es monotona
     y responde la pregunta directamente: cuanto pasado hace falta.
     """
-    for s_now, c in zip(INSTANTES, RAMPA[1:]):
+    from matplotlib.colors import LinearSegmentedColormap
+    # Un color POR INSTANTE. Con una lista fija, `zip` descartaba en silencio
+    # los instantes sobrantes: agregar uno a INSTANTES no dibujaba nada.
+    colores = LinearSegmentedColormap.from_list("nlaid", RAMPA)(
+        np.linspace(0.15, 1.0, len(INSTANTES)))
+    alcances = []
+    for s_now, c in zip(INSTANTES, colores):
         u, w = d[f"u_{s_now}"], d[f"c_{s_now}"]
         acum = np.concatenate([[0], np.cumsum(np.diff(u) * (w[1:] + w[:-1]) / 2)])
         desde_cero = 1.0 - acum / acum[-1]          # peso acumulado en [u, 0]
@@ -115,14 +126,14 @@ def panel_peso(ax, d):
         j = int(np.searchsorted(acum / acum[-1], 0.10))
         ax.plot([u[j] / ELL], [0.9], "o", ms=6, color=c, mec="#fcfcfb",
                 mew=1.2, zorder=6)
-        ax.annotate(f"{-u[j] / ELL:.1f}$\\,\\ell$", xy=(u[j] / ELL, 0.9),
-                    xytext=(0, 8), textcoords="offset points", ha="center",
-                    fontsize=8.5, color=c)
+        alcances.append(-u[j] / ELL)
 
     ax.axhline(0.9, color=MUTED, lw=1, ls=(0, (2, 3)))
     ax.annotate("90% del peso", xy=(-14.6, 0.915), fontsize=8.5, color=MUTED)
-    ax.annotate("al relajar, la memoria que\nimporta se alarga: de $4\\ell$ a $8\\ell$",
-                xy=(-14.6, 0.32), fontsize=8.5, color=INK)
+    ax.annotate("al relajar, la memoria que importa se alarga:\n"
+                f"de ${alcances[0]:.1f}\\ell$ a ${alcances[-1]:.1f}\\ell$   "
+                "(los puntos marcan el 90%)",
+                xy=(-14.6, 0.30), fontsize=8.5, color=INK)
     ax.set_xlabel("$u/\\ell$        ($u = s' - s \\leq 0$)")
     ax.set_ylabel("fracción del peso acumulada en $[u,\\,0]$")
     ax.set_title("A.  Cuánto pasado hace falta, ec. (17)\n"
