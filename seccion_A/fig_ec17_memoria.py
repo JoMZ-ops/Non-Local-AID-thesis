@@ -36,10 +36,10 @@ from nlaid.block3_memory import integrate_memory
 CACHE = RAIZ / "figures/seccionA_ec17.npz"
 ELL = 1.0 / 3.0                 # r0/ell = 3, el caso de la Fig. 1 del paper
 M_OVER_MB = 2.0                 # el valor del contratermino ahi: 1/(1 - 3/6)
-S_END, DS = 12.0, 5e-3
+S_END, DS = 15.0, 5e-3
 VENTANAS = [2, 4, 8, 24]        # n_ell a comparar
 N_REF = 35                      # referencia: peso residual ~ e^-35
-INSTANTES = [0.5, 3.0, 8.0]     # s donde se mira el peso de la memoria
+INSTANTES = [0.5, 3.0, 8.0, 10.0, 14.0]     # s donde se mira el peso de la memoria
 
 RAMPA = ["#86b6ef", "#5598e7", "#2a78d6", "#104281"]
 INK, MUTED, GRID, ROJO = "#1a1a19", "#5c5b54", "#e4e3dd", "#c1442e"
@@ -148,7 +148,7 @@ def panel_truncado(ax, d):
                  loc="left", fontsize=10.5, color=INK, pad=8)
     ax.set_xlim(0, S_END)
     ax.set_ylim(1e-6, 1)
-    ax.legend(frameon=False, fontsize=8.5, loc="lower left", ncol=2)
+    ax.legend(frameon=False, fontsize=8.5, loc="upper right", ncol=2)
 
 
 def panel_error(ax, d):
@@ -171,7 +171,7 @@ def panel_error(ax, d):
                  "la memoria es infinita, pero converge rápido",
                  loc="left", fontsize=10.5, color=INK, pad=8)
     ax.set_xlim(0, 34)
-    ax.legend(frameon=False, fontsize=9, loc="upper right")
+    ax.legend(frameon=False, fontsize=9, loc="lower left")
 
 
 def main():
