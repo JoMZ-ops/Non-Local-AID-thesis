@@ -102,13 +102,43 @@ se truncan en la figura.
    independientes — analítica (10), espectral (14) y no lineal (17) —
    coincidiendo en el mismo punto del plano.
 
-2. **La condición inicial difiere.** El paper prescribe una trayectoria y apaga la
-   fuente; aquí se usa un pulso externo `C^infinito` (ver `worldline.py` para por
-   qué: el corte abrupto degrada el orden del integrador). El propio paper avisa
-   que *"The precise value of m/m_B at the stability edge is found to be slightly
-   dependent on the initial, prescribed trajectory"* (p. 10). Eso explicaría un
-   corrimiento del borde, pero probablemente no un cambio de carácter monótono
-   a oscilatorio.
+2. ~~**La condición inicial difiere.**~~ **PROBADA Y DESCARTADA**
+   (`seccion_A/d1_condicion_inicial.py`).
+
+   Se implementó la lectura literal del paper: reposo, luego un tramo de
+   aceleración propia **constante** (movimiento hiperbólico, que cumple
+   `xdot^2 = 1` exacto) durante `t_i`, y la fuente apagada en `s = 0` — con su
+   salto de aceleración en el empalme, que es justo lo que el pulso
+   `C^infinito` evita. Ocho condiciones iniciales, a `r0/ell = 3`,
+   `m/m_B = 2.00`:
+
+   | condición inicial | tasa | semiperíodo |
+   |---|---|---|
+   | pulso `A=0.05, w=1` | `-0.7180` | `1.2206` |
+   | pulso `A=0.30, w=1` | `-0.7179` | `1.2206` |
+   | pulso `A=0.90, w=1` | `-0.7179` | `1.2206` |
+   | pulso `A=0.30, w=3` | `-0.7179` | `1.2206` |
+   | prescrita `a=0.3, t_i=1` | `-0.7179` | `1.2206` |
+   | prescrita `a=0.3, t_i=4` | `-0.7179` | `1.2206` |
+   | prescrita `a=1.0, t_i=1` | `-0.7180` | `1.2206` |
+   | prescrita `a=2.0, t_i=2` | `-0.7181` | `1.2206` |
+   | **espectral, ec. (14)** | **`-0.7179`** | **`1.2207`** |
+
+   Dispersión: **0.01% en la tasa, 0.00% en el semiperíodo**. El último caso
+   llega a `s = 0` con `beta = tanh(4) = 0.9993`, o sea `gamma ~ 27`: no es un
+   régimen lineal ni de amplitud pequeña, y aun así da el mismo número.
+
+   **Por qué tenía que salir así, en retrospectiva.** La condición inicial fija
+   la amplitud y la fase de cada modo, no *cuáles* modos existen. A tiempos
+   largos manda el de mayor `Im omega`, que es propiedad de la ecuación. Que la
+   integración no lineal lo confirme a cuatro cifras desde ocho arranques
+   distintos es la comprobación de que no hay una condición inicial escondida
+   que produzca la Fig. 1(a).
+
+   D1 sigue abierta. De las cuatro hipótesis quedan **una y media**: la 3
+   (convención de signo o normalización en `m/m_B`) y, a medias, la 4 — que ya
+   no es "tensión entre figuras" sino la sospecha concreta de que el panel (b)
+   de la Fig. 2 no es fiable, con tres defectos medidos.
 
 3. **Convención de signo o normalización en `m/m_B`.** Revisar si el `m/m_B` de la
    Fig. 1 es el mismo parámetro que multiplica `r0` en la ec. (17).
