@@ -104,20 +104,35 @@ def panel_ec10(ax):
 
 
 def verifica():
-    """Tres vias al mismo numero: cuadratura, forma cerrada y el modulo."""
-    ell = 0.7
-    reg = make_regulator("smeared", ell)
-    num = quad(lambda z: reg.delta(z) / np.sqrt(z), 0, np.inf, limit=400)[0]
-    print(f"\nec. (10) con ec. (5), ell = {ell}")
-    print(f"  cuadratura            {num:.12f}")
-    print(f"  cerrada  1/(3 ell)    {1 / (3 * ell):.12f}")
-    print(f"  reg.moment_inv_sqrt   {reg.moment_inv_sqrt():.12f}")
-    print(f"  delta_m/m = r0/(6ell) {reg.mass_shift_over_m():.12f}"
-          f"   (esperado {1 / (6 * ell):.12f})")
-    # La lectura erronea del extractor de texto, dz*sqrt(z), da 4*ell: CRECE al
-    # remover el cutoff. Es el argumento dimensional de que la (10) lleva 1/sqrt(z).
-    mal = quad(lambda z: reg.delta(z) * np.sqrt(z), 0, np.inf, limit=400)[0]
-    print(f"  lectura erronea dz*sqrt(z) = {mal:.6f}  (= 4 ell, diverge al reves)")
+    """Tres vias al mismo numero, en los tres cutoffs que grafica el panel A.
+
+    La identidad int dz z^{-1/2} delta_B(z) = 1/(3 ell) se comprueba en
+    ell = 1/2, 1/3, 1/4 -- los mismos r0/ell = 2, 3, 4 de las curvas --, de modo
+    que lo que se verifica no es un numero sino la LEY 1/ell: al dividir ell por
+    dos el momento se duplica, y con el delta_m/m.
+    """
+    print("\nec. (10) con ec. (5), regulador suavizado")
+    print(f"  {'r0/ell':>7} {'ell':>8} {'cuadratura':>15} {'1/(3 ell)':>13}"
+          f" {'moment_inv_sqrt':>17} {'delta_m/m':>12} {'dz*sqrt(z)':>12}")
+    for x in CUTOFFS:
+        ell = 1.0 / x
+        reg = make_regulator("smeared", ell)
+        num = quad(lambda z: reg.delta(z) / np.sqrt(z), 0, np.inf, limit=400)[0]
+        # La lectura erronea del extractor de texto, dz*sqrt(z), da 4*ell: DECRECE
+        # al remover el cutoff. Argumento dimensional de que la (10) lleva 1/sqrt(z).
+        mal = quad(lambda z: reg.delta(z) * np.sqrt(z), 0, np.inf, limit=400)[0]
+        print(f"  {x:7.0f} {ell:8.5f} {num:15.12f} {1 / (3 * ell):13.10f}"
+              f" {reg.moment_inv_sqrt():17.12f} {reg.mass_shift_over_m():12.9f}"
+              f" {mal:12.9f}")
+
+    # El contraste que fija la lectura: la columna correcta crece como 1/ell (la
+    # divergencia del contratermino), la erronea decrece como ell.
+    e0, e1 = 1.0 / CUTOFFS[0], 1.0 / CUTOFFS[-1]
+    r0 = make_regulator("smeared", e0).moment_inv_sqrt()
+    r1 = make_regulator("smeared", e1).moment_inv_sqrt()
+    print(f"  al pasar de ell = {e0:.3f} a {e1:.3f} (factor {e0 / e1:.1f} de cutoff):")
+    print(f"    correcta  dz/sqrt(z):  x{r1 / r0:.3f}   (diverge al remover el cutoff)")
+    print(f"    erronea   dz*sqrt(z):  x{e1 / e0:.3f}   (se apaga: no puede ser delta_m)")
 
 
 def main():
