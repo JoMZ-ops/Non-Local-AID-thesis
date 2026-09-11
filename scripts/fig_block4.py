@@ -3,9 +3,12 @@
 Panel A  regulador desplazado, ec. (16), contra el panel (a) de la Fig. 2.
 Panel B  regulador suavizado,  ec. (17), contra el panel (b) de la Fig. 2.
 
-La frontera digitalizada del paper esta en data/fig2_digitalizada.npz
-(calibracion documentada en data/fig2_digitalizada.json). Los bordes propios
-salen de scripts/scan_borde.py.
+La frontera del paper sale de data/fig2_vectorial.npz, leida del content
+stream del PDF por scripts/digitaliza_fig2.py: son las coordenadas que
+Mathematica escribio, sin error de lectura. (La digitalizacion por pixeles,
+data/fig2_digitalizada.npz, queda como registro historico; la usa
+figures/fig2b_verificacion_contraterm.png.) Los bordes propios salen de
+scripts/scan_borde.py.
 
 Ambas fronteras caen a r_0B/ell constante, con r_0B = r0 (m/m_B) el radio
 clasico DESNUDO: el criterio de estabilidad compara el acoplamiento desnudo
@@ -45,40 +48,59 @@ def carga_mio(reg):
 
 
 def cte(x, y):
-    """r_0B/ell = (r0/ell)(m/m_B), constante si la frontera escala como 1/x."""
+    """r_0B/ell = (r0/ell)(m/m_B): media y dispersion.
+
+    Es constante SOLO si la frontera escala como 1/x. Se devuelve tambien la
+    desviacion porque el panel (b) del paper no escala asi, y dar solo la media
+    ahi sugiere una regularidad que no existe.
+    """
     m = np.isfinite(y)
-    return float(np.mean(x[m] * y[m])) if m.any() else np.nan
+    if not m.any():
+        return np.nan, np.nan
+    p = x[m] * y[m]
+    return float(np.mean(p)), float(np.std(p))
+
+
+def carga_paper(pan, n=600):
+    """Las dos ramas de la Fig. 2 del paper, sobre una malla comun.
+
+    `sol0` es la rama m/m_B > 0 y `sol1` la negativa; cada una trae su propia
+    malla en x, asi que se interpolan sobre una comun para poder sombrear
+    entre ellas.
+    """
+    d = np.load(RAIZ / "data/fig2_vectorial.npz")
+    s0, s1 = d[f"{pan}_sol0"], d[f"{pan}_sol1"]
+    o0, o1 = np.argsort(s0[:, 0]), np.argsort(s1[:, 0])
+    lo = max(s0[:, 0].min(), s1[:, 0].min(), 0.5)
+    x = np.linspace(lo, min(s0[:, 0].max(), s1[:, 0].max()), n)
+    return x, np.interp(x, s0[o0, 0], s0[o0, 1]), np.interp(x, s1[o1, 0], s1[o1, 1])
 
 
 def main():
-    dig = np.load(RAIZ / "data/fig2_digitalizada.npz")
     fig, axes = plt.subplots(1, 2, figsize=(11.5, 4.8))
 
     for ax, pan, reg, titulo in (
         (axes[0], "a", "shifted", "A.  desplazado, ec. (16)  vs  Fig. 2(a)"),
         (axes[1], "b", "smeared", "B.  suavizado, ec. (17)  vs  Fig. 2(b)"),
     ):
-        xd, sup, inf = dig[f"{pan}_x"], dig[f"{pan}_sup"], dig[f"{pan}_inf"]
-        libre = (sup < 0.80) & (inf > -1.22)        # no recortado por el marco
-        ax.plot(xd[libre], sup[libre], lw=2, color=PAPER, label="paper (digitalizado)")
-        ax.plot(xd[libre], inf[libre], lw=2, color=PAPER)
-        ax.fill_between(xd[libre], inf[libre], sup[libre], color=PAPER, alpha=.10)
+        xd, sup, inf = carga_paper(pan)
+        ax.plot(xd, sup, lw=2, color=PAPER, label="paper (vectorial)")
+        ax.plot(xd, inf, lw=2, color=PAPER)
+        ax.fill_between(xd, inf, sup, color=PAPER, alpha=.10)
 
         mio = carga_mio(reg)
         if mio is not None:
             x, p, n = mio
             ax.plot(x, p, "o-", lw=2, ms=5, color=MIO, label="este código")
             ax.plot(x, n, "o-", lw=2, ms=5, color=MIO)
-            cp, cn = cte(x, p), cte(x, n)
-            ax.annotate(f"$r_{{0B}}/\\ell = {cp:+.2f}$", xy=(0.52, 0.90),
-                        xycoords="axes fraction", color=MIO, fontsize=9)
-            ax.annotate(f"$r_{{0B}}/\\ell = {cn:+.2f}$", xy=(0.52, 0.83),
-                        xycoords="axes fraction", color=MIO, fontsize=9)
-        cps, cns = cte(xd[libre], sup[libre]), cte(xd[libre], inf[libre])
-        ax.annotate(f"$r_{{0B}}/\\ell = {cps:+.2f}$", xy=(0.52, 0.74),
-                    xycoords="axes fraction", color=PAPER, fontsize=9)
-        ax.annotate(f"$r_{{0B}}/\\ell = {cns:+.2f}$", xy=(0.52, 0.67),
-                    xycoords="axes fraction", color=PAPER, fontsize=9)
+            for k, (c, sd) in enumerate((cte(x, p), cte(x, n))):
+                ax.annotate(f"$r_{{0B}}/\\ell = {c:+.2f} \\pm {sd:.2f}$",
+                            xy=(0.44, 0.93 - 0.055 * k), xycoords="axes fraction",
+                            color=MIO, fontsize=9)
+        for k, (c, sd) in enumerate((cte(xd, sup), cte(xd, inf))):
+            ax.annotate(f"$r_{{0B}}/\\ell = {c:+.2f} \\pm {sd:.2f}$",
+                        xy=(0.44, 0.82 - 0.055 * k), xycoords="axes fraction",
+                        color=PAPER, fontsize=9)
 
         ax.axhline(0, color=GRID, lw=1.2, zorder=1)
         ax.set_xlabel("$r_0/\\ell$")
@@ -96,8 +118,8 @@ def main():
         ax.tick_params(colors=MUTED, labelsize=9)
         ax.xaxis.label.set_color(INK); ax.yaxis.label.set_color(INK)
 
-    fig.suptitle("Bloque 4 — borde de estabilidad: cálculo propio vs. Fig. 2 "
-                 "de Polonyi (2019)", x=0.011, ha="left",
+    fig.suptitle("Bloque 4 — borde de estabilidad: cálculo propio vs. Fig. 2 de "
+                 "Polonyi (2019), leída del PDF como vectores", x=0.011, ha="left",
                  fontsize=12.5, color=INK)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     salida = RAIZ / "figures/block4_borde.png"
